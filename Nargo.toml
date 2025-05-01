@@ -1,0 +1,6 @@
+[package]
+name = "zk_lending"
+type = "bin"
+authors = [""]
+
+[dependencies]
