@@ -1,26 +1,29 @@
 use dep::std;
 
-// Global config (percentage-based)
-global LTV_THRESHOLD: u64 = 50;
-// interest rate is per year
-global LEND_INTEREST_RATE: u64 = 3;
-global BORROW_INTEREST_RATE: u64 = 10;
+// ==== Global config ==== (percentage-based)
+global LTV_THRESHOLD: u64 = 50; //
+global LEND_INTEREST_RATE: u64 = 3; // annual rate
+global BORROW_INTEREST_RATE: u64 = 10; // annual rate
 global ACCEPTABLE_PERCENT:u64 = 1;
 
 // Assume price is integer
 // Assume amt has at most 5 decimal, so we default times 10000
 struct Liquidated{
-    liq_price: u64,
+    liq_price: u64, // in smallest units 
     timestamp: u64
 }
 
 struct MyNote{
-    lend_amt: u64,
-    borrow_amt: u64,
-    will_liq_price: u64, 
+    lend_amt: u64,   // in smallest units (scaled, e.g., x10^5)
+    borrow_amt: u64, // in smallest units (scaled, e.g., x10^5)
+    will_liq_price: u64, // in smallest units
     timestamp: u64,
     nullifier: Field,
     nonce: Field
+}
+
+fn simple_hash(left: Field, right: Field) -> Field{
+    std::hash::pedersen_hash([left, right])
 }
 
 fn hash_my_note(my_note: MyNote) -> Field{
@@ -97,9 +100,6 @@ fn assert_non_liquidation(my_note: MyNote, liquidated_array: [Liquidated; 3]) {
 }
 
 
-fn pedersen_hash(left: Field, right: Field) -> Field{
-    std::hash::pedersen_hash([left, right])
-}
 
 fn assert_inclusion_proof(leaf: Field, index: u32, hash_path:[Field;3], root:Field){
     let calculated_root = std::merkle::compute_merkle_root(leaf, index as Field, hash_path);
@@ -110,8 +110,7 @@ fn initial_deposit(lend_amt: u64, timestamp: u64, nullifier: Field, nonce: Field
     let my_note: MyNote = MyNote{
         lend_amt,
         borrow_amt: 0,
-        // UNSURE
-        will_liq_price: 0, 
+        will_liq_price: 0, // 0 indicates no possibility of liquidation
         timestamp,
         nullifier,
         nonce
@@ -120,9 +119,8 @@ fn initial_deposit(lend_amt: u64, timestamp: u64, nullifier: Field, nonce: Field
     hash_my_note(my_note)
 }
 
-fn borrow(prev_note: MyNote, prev_hash: Field, prev_index: u32, prev_hash_path: [Field; 3], root: Field, liquidated_array: [Liquidated; 3], new_note:MyNote, more_borrow_amt:u64) -> Field{
-    let calculated_hash = hash_my_note(prev_note);
-    assert(calculated_hash == prev_hash);
+fn borrow(prev_note: MyNote, prev_hash: Field, prev_index: u32, prev_hash_path: [Field; 3], root: Field, liquidated_array: [Liquidated; 3], new_note:MyNote, additional_borrow_amt:u64) -> Field{
+    assert(hash_my_note(prev_note) == prev_hash);
     assert_inclusion_proof(prev_hash, prev_index, prev_hash_path, root);
     assert_non_liquidation(prev_note, liquidated_array);
     
@@ -130,7 +128,7 @@ fn borrow(prev_note: MyNote, prev_hash: Field, prev_index: u32, prev_hash_path: 
     assert_update_amt(prev_note.lend_amt, prev_note.timestamp, new_note.lend_amt, new_note.timestamp, LEND_INTEREST_RATE);
 
     // assert updated borrowing amount (before borrowing more)
-    assert_update_amt(prev_note.borrow_amt, prev_note.timestamp, new_note.borrow_amt - more_borrow_amt, new_note.timestamp, BORROW_INTEREST_RATE);
+    assert_update_amt(prev_note.borrow_amt, prev_note.timestamp, new_note.borrow_amt - additional_borrow_amt, new_note.timestamp, BORROW_INTEREST_RATE);
 
     assert_ltv(new_note);
     hash_my_note(new_note)
@@ -140,13 +138,13 @@ fn borrow(prev_note: MyNote, prev_hash: Field, prev_index: u32, prev_hash_path: 
 fn construct_merkle_tree(leaf_array:[Field;8]) -> [Field;7]{
     let mut lv1_nodes: [Field;4] = [0;4];
     for i in 0..4 {
-        lv1_nodes[i] = pedersen_hash(leaf_array[2*i], leaf_array[2*i+1]);
+        lv1_nodes[i] = simple_hash(leaf_array[2*i], leaf_array[2*i+1]);
     }
     let mut lv2_nodes: [Field;2] = [0;2];
     for i in 0..2 {
-        lv2_nodes[i] = pedersen_hash(lv1_nodes[2*i], lv1_nodes[2*i+1]);
+        lv2_nodes[i] = simple_hash(lv1_nodes[2*i], lv1_nodes[2*i+1]);
     }
-    let root = pedersen_hash(lv2_nodes[0], lv2_nodes[1]);
+    let root = simple_hash(lv2_nodes[0], lv2_nodes[1]);
     [lv1_nodes[0], lv1_nodes[1], lv1_nodes[2], lv1_nodes[3], lv2_nodes[0], lv2_nodes[1], root]
 
 }
