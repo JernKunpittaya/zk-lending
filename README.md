@@ -17,6 +17,8 @@
 
 ## What we have now
 
+See Test Cases, especially test_main() that illustrates the whole flow.
+
 Tracking: Each user has a MyNote (commitment) with:
 
 - Lend amount (lend_amt)
