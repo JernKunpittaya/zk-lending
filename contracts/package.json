@@ -1,0 +1,14 @@
+{
+  "name": "tornado-cash-reconstructed",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "circom": "^0.5.46",
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
+    "ethers": "^6.13.4",
+    "fixed-merkle-tree": "^0.7.3",
+    "snarkjs": "^0.7.5"
+  }
+}
