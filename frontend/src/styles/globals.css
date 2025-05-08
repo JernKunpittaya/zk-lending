@@ -1,10 +1,13 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @plugin 'tailwindcss-animate';
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
@@ -116,7 +119,7 @@
     --input: 0 0% 89.8%;
     --ring: 0 0% 3.9%;
 
-    --radius: 0.5rem;
+    --radius: 0rem;
   }
 
   .dark {
