@@ -55,7 +55,6 @@ contract ETHzkLendTest is Test {
          *
          * - verifier: Groth16 verifierwghat
          * - hasher: Poseidon hasher
-         * - denomination: 1 ETH
          * - merkleTreeHeight: 20
          */
         lend_mixer = new ETHzkLend(verifier, IHasher(poseidonHasher), 20);
@@ -97,9 +96,27 @@ contract ETHzkLendTest is Test {
         uint256 liquidated_array
     ) internal returns (uint256, bytes32, bytes32) {
         // TODO: have actual logic here
-        uint256 priWitness;
-        bytes32 root;
-        bytes32 nullifierHash;
+        // uint256 priWitness;
+        // bytes32 root;
+        // bytes32 nullifierHash;
+        string[] memory inputs = new string[](8 + leaves.length);
+        inputs[0] = "node";
+        inputs[1] = "forge-ffi-scripts/generateWitness.js";
+        inputs[2] = vm.toString(prev_note.lend_amt);
+        inputs[3] = vm.toString(prev_note.borrow_amt);
+        inputs[4] = vm.toString(prev_note.will_liq_price);
+        inputs[5] = vm.toString(prev_note.timestamp);
+        inputs[6] = vm.toString(prev_note.nullifier);
+        inputs[7] = vm.toString(prev_note.secret);
+
+        for (uint256 i = 0; i < leaves.length; i++) {
+            inputs[8 + i] = vm.toString(leaves[i]);
+        }
+
+        bytes memory result = vm.ffi(inputs);
+        (uint256 priWitness, bytes32 root, bytes32 nullifierHash) =
+            abi.decode(result, (uint256, bytes32, bytes32));
+
         return (priWitness, root, nullifierHash);
 
     }
@@ -160,8 +177,6 @@ contract ETHzkLendTest is Test {
 
         bytes32[] memory leaves = new bytes32[](1);
         leaves[0] = commitment;
-        // TODO: Check if _recipient is needed in constraint
-        address recipient;
         // TODO: Fix _liquidated_array
         uint256  liquidated_array;
         // TODO: Fix priWitness
