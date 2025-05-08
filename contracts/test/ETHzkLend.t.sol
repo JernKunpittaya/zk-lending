@@ -32,6 +32,7 @@ contract ETHzkLendTest is Test {
     bytes32 nullifier;
     bytes32 secret;
     }
+
     
     function setUp() public {
         // Deploy Poseidon hasher contract.
@@ -91,15 +92,15 @@ contract ETHzkLendTest is Test {
         MyNote memory prev_note,
         MyNote memory new_note,
         uint256 _additional_borrow_amt,
-        bytes32[] memory leaves,
-        //TODO fix liquidated_array
-        uint256 liquidated_array
+        uint256[] memory liquidated_array,
+        // uint256 liquidated_array,
+        bytes32[] memory leaves
     ) internal returns (uint256, bytes32, bytes32) {
         // TODO: have actual logic here
         // uint256 priWitness;
         // bytes32 root;
         // bytes32 nullifierHash;
-        string[] memory inputs = new string[](8 + leaves.length);
+        string[] memory inputs = new string[](28 + leaves.length);
         inputs[0] = "node";
         inputs[1] = "forge-ffi-scripts/generateWitness.js";
         inputs[2] = vm.toString(prev_note.lend_amt);
@@ -108,9 +109,14 @@ contract ETHzkLendTest is Test {
         inputs[5] = vm.toString(prev_note.timestamp);
         inputs[6] = vm.toString(prev_note.nullifier);
         inputs[7] = vm.toString(prev_note.secret);
+        // Fix number of brackets to just 10 as example. since each bracket consists of liquidation price & time, makig liquidated_array len = 20
+        for (uint256 i = 0; i < 20; i++) {
+            inputs[8 + i] = vm.toString(liquidated_array[i]);
+        }
+        
 
         for (uint256 i = 0; i < leaves.length; i++) {
-            inputs[8 + i] = vm.toString(leaves[i]);
+            inputs[28 + i] = vm.toString(leaves[i]);
         }
 
         bytes memory result = vm.ffi(inputs);
@@ -137,6 +143,7 @@ contract ETHzkLendTest is Test {
         return (commitment, nullifier, secret);
     }
 
+
     function test_mixer_single_deposit() public {
         // 1. Generate commitment and deposit
         uint256 lend_amt = 10 ether;
@@ -146,7 +153,7 @@ contract ETHzkLendTest is Test {
         (bytes32 commitment, bytes32 nullifier, bytes32 secret) = _getCommitment(lend_amt, borrow_amt, will_liq_price, timestamp );
         lend_mixer.deposit{value: lend_amt}(commitment, lend_amt, timestamp);
 
-        // 2. Generate witness and proof.
+        // 2. Generate witness and proof to prove ownership of prev_note for borrow more
         MyNote memory prev_note = MyNote({
             lend_amt: lend_amt,
             borrow_amt: borrow_amt,
@@ -157,12 +164,12 @@ contract ETHzkLendTest is Test {
         });
         
 
-        // TODO: make these actual functions
+        // TODO: These functions should be precomputed from frontend
         uint256 lend_interest_update = 1;
-        // TODO: make sure this is in USDC, not ether
         uint256 additional_borrow_amt = 3;
         uint256 new_lend_amt = prev_note.lend_amt+lend_interest_update;
         uint256 new_borrow_amt = prev_note.borrow_amt+additional_borrow_amt;
+        // TODO: Also come from frontend
         uint256 new_will_liq_price = 21;
         uint256 new_timestamp = block.timestamp;
         (bytes32 new_commitment, bytes32 new_nullifier, bytes32 new_secret) = _getCommitment(new_lend_amt, new_borrow_amt, new_will_liq_price, new_timestamp );
@@ -177,11 +184,10 @@ contract ETHzkLendTest is Test {
 
         bytes32[] memory leaves = new bytes32[](1);
         leaves[0] = commitment;
-        // TODO: Fix _liquidated_array
-        uint256  liquidated_array;
+        
         // TODO: Fix priWitness
         (uint256 priWitness, bytes32 root, bytes32 nullifierHash) =
-            _getWitnessAndProof(prev_note, new_note, additional_borrow_amt,leaves, liquidated_array);
+            _getWitnessAndProof(prev_note, new_note, additional_borrow_amt, lend_mixer.show_liquidated_array(), leaves);
 
         // // 3. Verify proof against the verifier contract.
         // assertTrue(
@@ -203,8 +209,7 @@ contract ETHzkLendTest is Test {
         // 4. Withdraw funds from the contract.
         // assertEq(recipient.balance, 0);
         // assertEq(address(mixer).balance, 1 ether);
-
-        lend_mixer.borrow(priWitness, root, nullifierHash, new_commitment, recipient, new_will_liq_price, additional_borrow_amt, liquidated_array );
+        lend_mixer.borrow(priWitness, root, nullifierHash, new_commitment, recipient, new_will_liq_price, additional_borrow_amt, lend_mixer.show_liquidated_array() );
         // assertEq(recipient.balance, 1 ether);
         // assertEq(address(mixer).balance, 0);
     }

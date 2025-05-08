@@ -25,7 +25,7 @@ interface IVerifier {
 
 abstract contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     IVerifier public immutable verifier;
-    // uint256 public denomination;
+    uint256[] public liquidated_array;
 
     mapping(bytes32 => bool) public nullifierHashes;
     // we store all commitments just to prevent accidental deposits with the same commitment
@@ -46,8 +46,11 @@ abstract contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         MerkleTreeWithHistory(_merkleTreeHeight, _hasher)
     {
         verifier = _verifier;
+        liquidated_array = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
     }
-
+    function show_liquidated_array() public returns (uint256[] memory){
+        return liquidated_array;
+    }
     /**
      * @dev Deposit funds into the contract. The caller must send (for ETH) or approve (for ERC20) value equal to or `denomination` of this instance.
      * @param _commitment the note commitment, which is PedersenHash(nullifier + secret)
@@ -84,7 +87,7 @@ abstract contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         uint256 _will_liq_price,
         uint256 _additional_borrow_amt,
         // TODO: Fix _liquidated_array
-        uint256  _liquidated_array
+        uint256[] memory _liquidated_array
 
     ) external payable nonReentrant {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");

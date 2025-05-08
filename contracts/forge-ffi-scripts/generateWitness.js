@@ -30,7 +30,7 @@ async function main() {
   const nullifierHash = await pedersenHash(leBigintToBuffer(nullifier, 31));
 
   // 3. Create merkle tree, insert leaves and get merkle proof for commitment
-  const leaves = inputs.slice(6, inputs.length).map((l) => hexToBigint(l));
+  const leaves = inputs.slice(26, inputs.length).map((l) => hexToBigint(l));
 
   const tree = await poseidonMerkleTree(leaves);
 
