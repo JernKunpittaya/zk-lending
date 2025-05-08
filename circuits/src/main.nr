@@ -370,6 +370,10 @@ fn global_will_liq_price(initial_will_liq_price: u64, timestamp: u64) -> u64 {
     borrow_factor * initial_will_liq_price / lend_factor
 }
 
+// Zringotts Circuit - all in one zk banking operation
+// 1. init note - if old is empty init note with no check
+// 2. if liquidated, force sell all assets and credit it as borrow asset
+// 3. lend, borrow, repay, withdraw - attempt to update the note and check aginst constraints
 fn main(
     new_note_hash: Field,
     new_will_liq_price: pub u64,
@@ -393,19 +397,9 @@ fn main(
     assert(lend_token_in * lend_token_out == 0);
     assert(borrow_token_in * borrow_token_out == 0);
 
-    // old is empty init note with no check -> return
-    if (prev_note.lend_amt == 0) & (prev_note.borrow_amt == 0) & (prev_note.will_liq_price == 0) {
-        let my_note = init_note(
-            lend_token_in,
-            borrow_token_out,
-            new_will_liq_price,
-            new_timestamp,
-            new_nullifier,
-            new_nonce,
-        );
-        assert_ltv(my_note);
-        assert(new_note_hash == hash_my_note(my_note));
-    } else {
+    // if old is empty no inclusion proof needed.
+    // note: lend_amt, borrow_amt, will_liq_price = 0 mean empty note
+    if (prev_note.lend_amt + prev_note.borrow_amt + prev_note.will_liq_price) > 0 {
         // validate the old note
         assert(hash_my_note(prev_note) == prev_hash);
         assert_inclusion_proof(prev_hash, prev_index, prev_hash_path, root);
