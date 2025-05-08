@@ -12,27 +12,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./Tornado.sol";
+import "./zkLend.sol";
 
-contract ETHTornado is Tornado {
-    constructor(IVerifier _verifier, IHasher _hasher, uint256 _denomination, uint32 _merkleTreeHeight)
-        Tornado(_verifier, _hasher, _denomination, _merkleTreeHeight)
+contract ETHzkLend is zkLend {
+    constructor(IVerifier _verifier, IHasher _hasher, uint32 _merkleTreeHeight)
+        zkLend(_verifier, _hasher, _merkleTreeHeight)
     {}
 
-    function _processDeposit() internal override {
-        require(msg.value == denomination, "Please send `mixDenomination` ETH along with transaction");
+    function _processDeposit(uint256 _lend_amt) internal override {
+        require(msg.value == _lend_amt, "Please lend the same number of ETH as you stated");
     }
-
-    function _processWithdraw(address _recipient, address _relayer, uint256 _fee, uint256 _refund) internal override {
+    // TODO: make it ERC20 token, now this is ETH
+    function _processBorrow(address _recipient, uint256 additional_borrow_amt) internal override {
         // sanity checks
         require(msg.value == 0, "Message value is supposed to be zero for ETH instance");
-        require(_refund == 0, "Refund value is supposed to be zero for ETH instance");
 
-        (bool success,) = _recipient.call{value: denomination - _fee}("");
-        require(success, "payment to _recipient did not go thru");
-        if (_fee > 0) {
-            (success,) = _relayer.call{value: _fee}("");
-            require(success, "payment to _relayer did not go thru");
-        }
+        (bool success,) = _recipient.call{value: additional_borrow_amt}("");
+        require(success, "borrow fund to _recipient did not go thru");
+
     }
 }
