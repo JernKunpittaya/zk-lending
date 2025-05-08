@@ -371,21 +371,20 @@ fn global_will_liq_price(initial_will_liq_price: u64, timestamp: u64) -> u64 {
 }
 
 fn main(
-    new_will_liq_price: u64,
-    new_timestamp: u64,
+    new_will_liq_price: pub u64,
+    new_timestamp: pub u64,
     new_nullifier: Field,
     new_nonce: Field,
     prev_note: MyNote,
-    prev_hash: Field,
+    prev_hash: pub Field,
     prev_index: u32,
-    prev_hash_path: [Field; 3],
-    root: Field,
-    liquidated_array: [Liquidated; 3],
-    withdraw_lend_amt: u64,
-    lend_token_out: u64,
-    borrow_token_out: u64,
-    lend_token_in: u64,
-    borrow_token_in: u64,
+    prev_hash_path: pub [Field; 3],
+    root: pub Field,
+    liquidated_array: pub [Liquidated; 3],
+    lend_token_out: pub u64,
+    borrow_token_out: pub u64,
+    lend_token_in: pub u64,
+    borrow_token_in: pub u64,
 ) -> pub Field {
     // return the new note hash
 
