@@ -5,10 +5,12 @@ import {Test, console} from "forge-std/Test.sol";
 import "forge-std/console.sol";
 // import {Groth16Verifier} from "src/Verifier.sol";
 import {ETHzkLend, IVerifier, IHasher} from "src/ETHzkLend.sol";
+import {MockToken} from "src/MockToken.sol";
+
 
 contract ETHzkLendTest is Test {
     uint256 public constant FIELD_SIZE = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
-
+    uint256 public constant LIQUIDATED_ARRAY_BUCKETS = 10; // hence 20 elements, since each bucket has info (liq_price, timestamp)
     IVerifier public verifier;
     ETHzkLend public lend_mixer;
 
@@ -61,45 +63,14 @@ contract ETHzkLendTest is Test {
         lend_mixer = new ETHzkLend(verifier, IHasher(poseidonHasher), 20);
     }
 
-    // function _getWitnessAndProof(
-    //     bytes32 _nullifier,
-    //     bytes32 _secret,
-    //     address _recipient,
-    //     address _relayer,
-    //     bytes32[] memory leaves
-    // ) internal returns (uint256[2] memory, uint256[2][2] memory, uint256[2] memory, bytes32, bytes32) {
-    //     string[] memory inputs = new string[](8 + leaves.length);
-    //     inputs[0] = "node";
-    //     inputs[1] = "forge-ffi-scripts/generateWitness.js";
-    //     inputs[2] = vm.toString(_nullifier);
-    //     inputs[3] = vm.toString(_secret);
-    //     inputs[4] = vm.toString(_recipient);
-    //     inputs[5] = vm.toString(_relayer);
-    //     inputs[6] = "0";
-    //     inputs[7] = "0";
-
-    //     for (uint256 i = 0; i < leaves.length; i++) {
-    //         inputs[8 + i] = vm.toString(leaves[i]);
-    //     }
-
-    //     bytes memory result = vm.ffi(inputs);
-    //     (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, bytes32 root, bytes32 nullifierHash) =
-    //         abi.decode(result, (uint256[2], uint256[2][2], uint256[2], bytes32, bytes32));
-
-    //     return (pA, pB, pC, root, nullifierHash);
-    // }
     function _getWitnessAndProof(
         MyNote memory prev_note,
         MyNote memory new_note,
         uint256 _additional_borrow_amt,
         uint256[] memory liquidated_array,
-        // uint256 liquidated_array,
         bytes32[] memory leaves
     ) internal returns (uint256, bytes32, bytes32) {
-        // TODO: have actual logic here
-        // uint256 priWitness;
-        // bytes32 root;
-        // bytes32 nullifierHash;
+        // TODO: Make priWitness correct type & value
         string[] memory inputs = new string[](28 + leaves.length);
         inputs[0] = "node";
         inputs[1] = "forge-ffi-scripts/generateWitness.js";
@@ -110,13 +81,12 @@ contract ETHzkLendTest is Test {
         inputs[6] = vm.toString(prev_note.nullifier);
         inputs[7] = vm.toString(prev_note.secret);
         // Fix number of brackets to just 10 as example. since each bracket consists of liquidation price & time, makig liquidated_array len = 20
-        for (uint256 i = 0; i < 20; i++) {
+        for (uint256 i = 0; i < 2*LIQUIDATED_ARRAY_BUCKETS; i++) {
             inputs[8 + i] = vm.toString(liquidated_array[i]);
         }
         
-
         for (uint256 i = 0; i < leaves.length; i++) {
-            inputs[28 + i] = vm.toString(leaves[i]);
+            inputs[8+2*LIQUIDATED_ARRAY_BUCKETS + i] = vm.toString(leaves[i]);
         }
 
         bytes memory result = vm.ffi(inputs);
@@ -162,7 +132,7 @@ contract ETHzkLendTest is Test {
             nullifier: nullifier,
             secret: secret
         });
-        
+
 
         // TODO: These functions should be precomputed from frontend
         uint256 lend_interest_update = 1;
@@ -189,6 +159,10 @@ contract ETHzkLendTest is Test {
         (uint256 priWitness, bytes32 root, bytes32 nullifierHash) =
             _getWitnessAndProof(prev_note, new_note, additional_borrow_amt, lend_mixer.show_liquidated_array(), leaves);
 
+        MockToken token = new MockToken();
+        // Assume this already exist in our lend_mixer (in reality comes from another side lending)
+        token.transfer(address(lend_mixer), 1000 * 1e6);
+
         // // 3. Verify proof against the verifier contract.
         // assertTrue(
         //     verifier.verifyProof(
@@ -209,7 +183,7 @@ contract ETHzkLendTest is Test {
         // 4. Withdraw funds from the contract.
         // assertEq(recipient.balance, 0);
         // assertEq(address(mixer).balance, 1 ether);
-        lend_mixer.borrow(priWitness, root, nullifierHash, new_commitment, recipient, new_will_liq_price, additional_borrow_amt, lend_mixer.show_liquidated_array() );
+        lend_mixer.borrow(priWitness, root, nullifierHash, new_commitment, recipient, new_will_liq_price, additional_borrow_amt, lend_mixer.show_liquidated_array(), token);
         // assertEq(recipient.balance, 1 ether);
         // assertEq(address(mixer).balance, 0);
     }

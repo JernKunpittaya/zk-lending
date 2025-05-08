@@ -14,6 +14,7 @@ pragma solidity ^0.8.0;
 
 import "./MerkleTreeWithHistory.sol";
 import "./utils/ReentrancyGuard.sol";
+import {MockToken} from "src/MockToken.sol";
 
 interface IVerifier {
     function verifyProof(
@@ -42,15 +43,17 @@ abstract contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     //  * @param _denomination transfer amount for each deposit
     //  * @param _merkleTreeHeight the height of deposits' Merkle Tree
     //  */
-    constructor(IVerifier _verifier, IHasher _hasher,  uint32 _merkleTreeHeight)
+    constructor(IVerifier _verifier, IHasher _hasher, uint32 _merkleTreeHeight)
         MerkleTreeWithHistory(_merkleTreeHeight, _hasher)
     {
         verifier = _verifier;
         liquidated_array = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
     }
-    function show_liquidated_array() public returns (uint256[] memory){
+    function show_liquidated_array() public view returns (uint256[] memory){
         return liquidated_array;
     }
+    // TODO: ADD logic that allows us to add (liq_price, time) pair
+
     /**
      * @dev Deposit funds into the contract. The caller must send (for ETH) or approve (for ERC20) value equal to or `denomination` of this instance.
      * @param _commitment the note commitment, which is PedersenHash(nullifier + secret)
@@ -86,13 +89,14 @@ abstract contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         address _recipient,
         uint256 _will_liq_price,
         uint256 _additional_borrow_amt,
-        // TODO: Fix _liquidated_array
-        uint256[] memory _liquidated_array
+        uint256[] memory _liquidated_array,
+        MockToken _token
 
     ) external payable nonReentrant {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
-        // TODO: uncomment these when have actual logic
+        require(_liquidated_array.length == liquidated_array.length, "Liquidated array length mismatch");
         require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
+         // TODO: Do verify logic
         // require(
         //     verifier.verifyProof(
         //         [_priWitness],
@@ -112,14 +116,14 @@ abstract contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         require(!commitments[_commitment], "The commitment has been submitted");
         uint32 insertedIndex = _insert(_commitment);
         commitments[_commitment] = true;
-        _processBorrow(_recipient, _additional_borrow_amt);
+        _processBorrow(_recipient, _additional_borrow_amt, _token);
         emit Borrow(_recipient, _nullifierHash, _commitment,insertedIndex, block.timestamp);
     }
 
     /**
      * @dev this function is defined in a child contract
      */
-    function _processBorrow(address _recipient, uint256 _additional_borrow_amt) internal virtual;
+    function _processBorrow(address _recipient, uint256 _additional_borrow_amt, MockToken _token) internal virtual;
 
     /**
      * @dev whether a note is already spent

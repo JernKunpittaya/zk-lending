@@ -13,6 +13,7 @@
 pragma solidity ^0.8.0;
 
 import "./zkLend.sol";
+import {MockToken} from "src/MockToken.sol";
 
 contract ETHzkLend is zkLend {
     constructor(IVerifier _verifier, IHasher _hasher, uint32 _merkleTreeHeight)
@@ -22,13 +23,14 @@ contract ETHzkLend is zkLend {
     function _processDeposit(uint256 _lend_amt) internal override {
         require(msg.value == _lend_amt, "Please lend the same number of ETH as you stated");
     }
-    // TODO: make it ERC20 token, now this is ETH
-    function _processBorrow(address _recipient, uint256 additional_borrow_amt) internal override {
+
+    function _processBorrow(address _recipient, uint256 _additional_borrow_amt, MockToken _token) internal override {
         // sanity checks
         require(msg.value == 0, "Message value is supposed to be zero for ETH instance");
 
-        (bool success,) = _recipient.call{value: additional_borrow_amt}("");
-        require(success, "borrow fund to _recipient did not go thru");
+        // (bool success,) = _recipient.call{value: _additional_borrow_amt}("");
+        // require(success, "borrow fund to _recipient did not go thru");
+        require(_token.transfer(_recipient, _additional_borrow_amt), "Token borrow failed");
 
     }
 }
