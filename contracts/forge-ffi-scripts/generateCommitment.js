@@ -1,5 +1,5 @@
 const { ethers } = require("ethers");
-const { pedersenHash } = require("./utils/pedersen.js");
+const { poseidonHash } = require("./utils/poseidon.js");
 const { rbigint, bigintToHex, leBigintToBuffer } = require("./utils/bigint.js");
 
 // Intended output: (bytes32 commitment, bytes32 nullifier, bytes32 secret)
@@ -20,7 +20,7 @@ async function main() {
   const secret = rbigint(31);
 
   // 3. Get commitment
-  const commitment = await pedersenHash(
+  const commitment = await poseidonHash(
     Buffer.concat([
       leBigintToBuffer(lend_amt, 31),
       leBigintToBuffer(borrow_amt, 31),
