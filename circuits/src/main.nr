@@ -371,6 +371,7 @@ fn global_will_liq_price(initial_will_liq_price: u64, timestamp: u64) -> u64 {
 }
 
 fn main(
+    new_note_hash: Field,
     new_will_liq_price: pub u64,
     new_timestamp: pub u64,
     new_nullifier: Field,
@@ -385,7 +386,7 @@ fn main(
     borrow_token_out: pub u64,
     lend_token_in: pub u64,
     borrow_token_in: pub u64,
-) -> pub Field {
+) {
     // return the new note hash
 
     // assert that token in and out are mutually exclusive
@@ -403,7 +404,7 @@ fn main(
             new_nonce,
         );
         assert_ltv(my_note);
-        hash_my_note(my_note);
+        assert(new_note_hash == hash_my_note(my_note));
     } else {
         // validate the old note
         assert(hash_my_note(prev_note) == prev_hash);
@@ -435,7 +436,7 @@ fn main(
             nullifier: new_nullifier,
             nonce: new_nonce,
         };
-        hash_my_note(my_note);
+        assert(new_note_hash == hash_my_note(my_note));
     } else {
         // assert that the old note is not liquidated
         assert_non_liquidated(prev_note, liquidated_array);
@@ -467,18 +468,8 @@ fn main(
         assert_ltv(my_note);
         // assert that the new note is not liquidated
         assert_non_liquidated(my_note, liquidated_array);
-        hash_my_note(my_note);
+        assert(new_note_hash == hash_my_note(my_note));
     }
-    hash_my_note(
-        MyNote {
-            lend_amt: 0,
-            borrow_amt: 0,
-            will_liq_price: 0,
-            timestamp: new_timestamp,
-            nullifier: new_nullifier,
-            nonce: new_nonce,
-        },
-    )
     // return 0 as placeholder
 }
 
