@@ -25,12 +25,12 @@ contract ETHzkLendTest is Test {
     }
 
     struct MyNote {
-    uint64 lend_amt;       // in smallest unit (scaled, e.g., x10^4)
-    uint64 borrow_amt;     // in smallest unit (scaled, e.g., x10^4)
-    uint64 will_liq_price; // in smallest unit as integer
-    uint64 timestamp;
+    uint256 lend_amt;       // in smallest unit (scaled, e.g., x10^4)
+    uint256 borrow_amt;     // in smallest unit (scaled, e.g., x10^4)
+    uint256 will_liq_price; // in smallest unit as integer
+    uint256 timestamp;
     bytes32 nullifier;
-    bytes32 nonce;
+    bytes32 secret;
     }
     
     function setUp() public {
@@ -88,6 +88,21 @@ contract ETHzkLendTest is Test {
 
     //     return (pA, pB, pC, root, nullifierHash);
     // }
+    function _getWitnessAndProof(
+        MyNote memory prev_note,
+        MyNote memory new_note,
+        uint256 _additional_borrow_amt,
+        bytes32[] memory leaves,
+        //TODO fix liquidated_array
+        uint256 liquidated_array
+    ) internal returns (uint256, bytes32, bytes32) {
+        // TODO: have actual logic here
+        uint256 priWitness;
+        bytes32 root;
+        bytes32 nullifierHash;
+        return (priWitness, root, nullifierHash);
+
+    }
 
     function _getCommitment(uint256 lend_amt, uint256 borrow_amt, uint256 will_liq_price, uint256 timestamp) internal returns (bytes32 commitment, bytes32 nullifier, bytes32 secret) {
         string[] memory inputs = new string[](6);
@@ -107,7 +122,7 @@ contract ETHzkLendTest is Test {
 
     function test_mixer_single_deposit() public {
         // 1. Generate commitment and deposit
-        uint256 lend_amt = 1 ether;
+        uint256 lend_amt = 10 ether;
         uint256 borrow_amt = 0;
         uint256 will_liq_price = 0;
         uint256 timestamp = block.timestamp;
@@ -115,10 +130,43 @@ contract ETHzkLendTest is Test {
         lend_mixer.deposit{value: lend_amt}(commitment, lend_amt, timestamp);
 
         // 2. Generate witness and proof.
-        // bytes32[] memory leaves = new bytes32[](1);
-        // leaves[0] = commitment;
-        // (uint256[2] memory pA, uint256[2][2] memory pB, uint256[2] memory pC, bytes32 root, bytes32 nullifierHash) =
-        //     _getWitnessAndProof(nullifier, secret, recipient, relayer, leaves);
+        MyNote memory prev_note = MyNote({
+            lend_amt: lend_amt,
+            borrow_amt: borrow_amt,
+            will_liq_price: will_liq_price,
+            timestamp: timestamp,
+            nullifier: nullifier,
+            secret: secret
+        });
+        
+
+        // TODO: make these actual functions
+        uint256 lend_interest_update = 1;
+        // TODO: make sure this is in USDC, not ether
+        uint256 additional_borrow_amt = 3;
+        uint256 new_lend_amt = prev_note.lend_amt+lend_interest_update;
+        uint256 new_borrow_amt = prev_note.borrow_amt+additional_borrow_amt;
+        uint256 new_will_liq_price = 21;
+        uint256 new_timestamp = block.timestamp;
+        (bytes32 new_commitment, bytes32 new_nullifier, bytes32 new_secret) = _getCommitment(new_lend_amt, new_borrow_amt, new_will_liq_price, new_timestamp );
+        MyNote memory new_note = MyNote({
+            lend_amt: new_lend_amt,
+            borrow_amt: new_borrow_amt,
+            will_liq_price: new_will_liq_price,
+            timestamp: new_timestamp,
+            nullifier: new_nullifier,
+            secret: new_secret
+        });
+
+        bytes32[] memory leaves = new bytes32[](1);
+        leaves[0] = commitment;
+        // TODO: Check if _recipient is needed in constraint
+        address recipient;
+        // TODO: Fix _liquidated_array
+        uint256  liquidated_array;
+        // TODO: Fix priWitness
+        (uint256 priWitness, bytes32 root, bytes32 nullifierHash) =
+            _getWitnessAndProof(prev_note, new_note, additional_borrow_amt,leaves, liquidated_array);
 
         // // 3. Verify proof against the verifier contract.
         // assertTrue(
@@ -140,7 +188,8 @@ contract ETHzkLendTest is Test {
         // 4. Withdraw funds from the contract.
         // assertEq(recipient.balance, 0);
         // assertEq(address(mixer).balance, 1 ether);
-        // mixer.withdraw(pA, pB, pC, root, nullifierHash, recipient, relayer, fee, refund);
+
+        lend_mixer.borrow(priWitness, root, nullifierHash, new_commitment, recipient, new_will_liq_price, additional_borrow_amt, liquidated_array );
         // assertEq(recipient.balance, 1 ether);
         // assertEq(address(mixer).balance, 0);
     }

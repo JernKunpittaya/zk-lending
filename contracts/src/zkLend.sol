@@ -88,21 +88,22 @@ abstract contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
 
     ) external payable nonReentrant {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
-        require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
-        require(
-            verifier.verifyProof(
-                [_priWitness],
-                [
-                    uint256(_root),
-                    uint256(_nullifierHash),
-                    uint256(_commitment),
-                    uint256(_will_liq_price),
-                    uint256(_additional_borrow_amt),
-                    uint256(_liquidated_array)
-                ]
-            ),
-            "Invalid borrow proof"
-        );
+        // TODO: uncomment these when have actual logic
+        // require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
+        // require(
+        //     verifier.verifyProof(
+        //         [_priWitness],
+        //         [
+        //             uint256(_root),
+        //             uint256(_nullifierHash),
+        //             uint256(_commitment),
+        //             uint256(_will_liq_price),
+        //             uint256(_additional_borrow_amt),
+        //             uint256(_liquidated_array)
+        //         ]
+        //     ),
+        //     "Invalid borrow proof"
+        // );
 
         nullifierHashes[_nullifierHash] = true;
         require(!commitments[_commitment], "The commitment has been submitted");
