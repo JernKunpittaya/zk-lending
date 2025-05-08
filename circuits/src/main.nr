@@ -22,18 +22,18 @@ struct MyNote{
 }
 
 fn simple_hash(left: Field, right: Field) -> Field{
-    std::hash::pedersen_hash([left, right])
+    std::hash::poseidon2::Poseidon2::hash([left, right],2)
 }
 
 fn hash_my_note(my_note: MyNote) -> Field{
-    std::hash::pedersen_hash([
+    std::hash::poseidon2::Poseidon2::hash([
         my_note.lend_amt as Field, 
         my_note.borrow_amt as Field, 
         my_note.will_liq_price as Field, 
         my_note.timestamp as Field, 
         my_note.nullifier, 
         my_note.nonce
-    ])
+    ], 6)
 }
 
 // ====== CONSTRAINT ================
@@ -109,10 +109,25 @@ fn assert_liquidated(my_note: MyNote, liquidated_array: [Liquidated; 3]){
     assert(is_my_pos_liquidated(my_note, liquidated_array)==1);
 }
 
+fn process_path_hash(leaf: Field, index: u32, another_leaf: Field) -> Field {
+    // if index is even, then leaf is left child
+    // if index is odd, then leaf is right child
+    if index % 2 == 0 {
+        simple_hash(leaf, another_leaf)
+    } else {
+        simple_hash(another_leaf, leaf)
+    }
+}
 
 fn assert_inclusion_proof(leaf: Field, index: u32, hash_path:[Field;3], root:Field){
-    let calculated_root = std::merkle::compute_merkle_root(leaf, index as Field, hash_path);
-    assert(calculated_root == root);
+    let mut calculated_hash = leaf;
+    let mut calculated_index = index;
+    for i in 0..3 {
+        calculated_hash = process_path_hash(calculated_hash, calculated_index, hash_path[i]);
+        calculated_index = calculated_index / 2;
+    }
+
+    assert(calculated_hash == root);
 }
 
 
@@ -240,6 +255,76 @@ fn global_will_liq_price(initial_will_liq_price: u64, timestamp: u64) -> u64 {
     borrow_factor * initial_will_liq_price/ lend_factor
 }
 
+fn main(
+    new_will_liq_price: u64, new_timestamp: u64, new_nullifier: Field, new_nonce: Field,
+    prev_note: MyNote, prev_hash: Field, prev_index: u32, prev_hash_path: [Field; 3], root: Field, 
+    liquidated_array: [Liquidated; 3], withdraw_lend_amt:u64, lend_token_out: u64, borrow_token_out: u64,lend_token_in: u64, borrow_token_in: u64,
+) -> pub Field { // return the new note hash
+
+    // assert that token in and out are mutually exclusive
+    assert(lend_token_in * lend_token_out == 0);
+    assert(borrow_token_in * borrow_token_out == 0); 
+
+    // old is empty init note with no check -> return
+    if (prev_note.lend_amt == 0) & (prev_note.borrow_amt == 0) & (prev_note.will_liq_price == 0){
+        let my_note = init_note(lend_token_in, borrow_token_out, new_will_liq_price, new_timestamp, new_nullifier, new_nonce);
+        assert_ltv(my_note);
+        hash_my_note(my_note);
+    } else { // validate the old note
+        assert(hash_my_note(prev_note) == prev_hash);
+        assert_inclusion_proof(prev_hash, prev_index, prev_hash_path, root);
+    }
+
+    // if the old note is liquidated, settle the note
+    if is_my_pos_liquidated(prev_note, liquidated_array) == 1 {
+        // calculate asset left after liquidation. interest is forfeited in this case. 
+        // give asset back to the user and reset the note
+        assert_liquidated(prev_note, liquidated_array);
+        let lend_asset_left_eqv = prev_note.lend_amt * prev_note.will_liq_price;
+        let borrow_amt = update_amt(prev_note.borrow_amt, prev_note.timestamp, new_timestamp, BORROW_INTEREST_RATE);
+        let borrow_asset_left_eqv = lend_asset_left_eqv - borrow_amt;
+        assert(borrow_token_out <= borrow_asset_left_eqv);
+        assert(borrow_token_in == 0);
+        assert(lend_token_out == 0);
+        assert(lend_token_in == 0);
+        let my_note = MyNote {
+            lend_amt: 0,
+            borrow_amt: 0,
+            will_liq_price: 0,
+            timestamp:new_timestamp,
+            nullifier:new_nullifier,
+            nonce:new_nonce
+        };
+        hash_my_note(my_note);
+    } else {
+        // assert that the old note is not liquidated
+        assert_non_liquidated(prev_note, liquidated_array);
+
+        let new_lend_amt = update_amt(prev_note.lend_amt, prev_note.timestamp, new_timestamp, LEND_INTEREST_RATE) + lend_token_in - lend_token_out;
+        let new_borrow_amt = update_amt(prev_note.borrow_amt, prev_note.timestamp, new_timestamp, BORROW_INTEREST_RATE) + borrow_token_in - borrow_token_out; 
+        let my_note = MyNote {
+            lend_amt: new_lend_amt,
+            borrow_amt: new_borrow_amt,
+            will_liq_price: new_will_liq_price,
+            timestamp: new_timestamp,
+            nullifier:new_nullifier,
+            nonce:new_nonce,
+        };
+        assert_ltv(my_note);
+        // assert that the new note is not liquidated
+        assert_non_liquidated(my_note, liquidated_array);
+        hash_my_note(my_note);
+    }
+    hash_my_note(MyNote{
+        lend_amt: 0,
+        borrow_amt: 0,
+        will_liq_price: 0,
+        timestamp: new_timestamp,
+        nullifier: new_nullifier,
+        nonce: new_nonce
+    })
+    // return 0 as placeholder
+}
 
 
 #[test]
