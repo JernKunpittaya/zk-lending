@@ -4,10 +4,12 @@ pragma solidity ^0.8.0;
 import {Test, console} from "forge-std/Test.sol";
 import "forge-std/console.sol";
 // import {Groth16Verifier} from "src/Verifier.sol";
-import {zkLend, IVerifier, IHasher} from "src/zkLend.sol";
+import {zkLend, IHasher} from "src/zkLend.sol";
 import {MockToken} from "src/MockToken.sol";
+import {HonkVerifier} from "src/Verifier.sol";
 
 contract zkLendTest is Test {
+    HonkVerifier public verifier;
     uint256 public constant FIELD_SIZE =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
     zkLend public zk_lend_mixer;
@@ -70,7 +72,14 @@ contract zkLendTest is Test {
 
         mUSDC = new MockToken("Mock USDC", "mUSDC", 6, 1_000_000 * 1e6);
         mETH = new MockToken("Mock ETH", "mETH", 18, 1_000_000 * 1e18);
-        zk_lend_mixer = new zkLend(IHasher(poseidonHasher), 12, mETH, mUSDC);
+        verifier = new HonkVerifier();
+        zk_lend_mixer = new zkLend(
+            verifier,
+            IHasher(poseidonHasher),
+            12,
+            mETH,
+            mUSDC
+        );
         // TODO: Shouldnt need this mint directly once we support two side market
         mUSDC.mint(address(zk_lend_mixer), 100_000 * 1e6);
         mETH.mint(address(zk_lend_mixer), 100_000 * 1e18);

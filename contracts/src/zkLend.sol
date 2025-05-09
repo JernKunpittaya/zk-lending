@@ -15,12 +15,14 @@ pragma solidity ^0.8.0;
 import "./MerkleTreeWithHistory.sol";
 import "./utils/ReentrancyGuard.sol";
 import {MockToken} from "./MockToken.sol";
-import {HonkVerifier} from "./Verifier.sol";
+import {IVerifier} from "./Verifier.sol";
 
 contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
-    HonkVerifier public immutable verifier;
-    MockToken public lend_token;
-    MockToken public borrow_token;
+    IVerifier public immutable verifier;
+
+    MockToken public weth;
+    MockToken public usdc;
+
     struct Liquidated {
         uint256 liq_price;
         uint256 timestamp;
@@ -75,12 +77,13 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     //  * @param _merkleTreeHeight the height of deposits' Merkle Tree
     //  */
     constructor(
+        IVerifier _verifier,
         IHasher _hasher,
         uint32 _merkleTreeHeight,
-        MockToken _lend_token,
-        MockToken _borrow_token
+        MockToken _weth,
+        MockToken _usdc
     ) MerkleTreeWithHistory(_merkleTreeHeight, _hasher) {
-        verifier = new HonkVerifier();
+        verifier = _verifier;
         Liquidated memory default_liquidated = Liquidated({
             liq_price: 0,
             timestamp: 0
@@ -88,8 +91,8 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         for (uint256 i = 0; i < LIQUIDATED_ARRAY_NUMBER; i++) {
             liquidated_array[i] = default_liquidated;
         }
-        lend_token = _lend_token;
-        borrow_token = _borrow_token;
+        weth = _weth;
+        usdc = _usdc;
     }
 
     function flatten_liquidated_array() public view returns (uint256[] memory) {
@@ -114,23 +117,97 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         liquidated_array[index].timestamp = _timestamp;
     }
 
+    modifier isWethOrUsdc(MockToken _token) {
+        require(_token == weth || _token == usdc, "Token must be weth or usdc");
+        _;
+    }
+
     // TODO: ADD logic that allows us to add (liq_price, time) pair
 
     // Deposit funds (first time) into the contract
     function deposit(
-        bytes32 _commitment,
+        bytes32 _new_note_hash,
+        bytes32 _new_will_liq_price,
+        uint256 _new_timestamp,
+        bytes32 _root,
+        bytes32 _old_nullifier,
+        bytes32 _proof,
         uint256 _lend_amt,
-        uint256 _timestamp
-    ) external payable nonReentrant {
-        require(!commitments[_commitment], "The commitment has been submitted");
+        MockToken _lend_token
+    ) external payable nonReentrant isWethOrUsdc(_lend_token) {
+        // TODO: check _new_will_liq_price is valid from some price oracle
 
-        uint32 insertedIndex = _insert(_commitment);
-        commitments[_commitment] = true;
+        // Check valid root
+        require(isKnownRoot(_root), "Cannot find your merkle root");
+
+        // Check valid timestamp
         require(
-            lend_token.transferFrom(msg.sender, address(this), _lend_amt),
+            _new_timestamp > block.timestamp - 5 minutes,
+            "Invalid timestamp, must be within 5 minutes of proof generation"
+        );
+
+        // Transfer token from user to contract
+        require(
+            _lend_token.transferFrom(msg.sender, address(this), _lend_amt),
             "Token lend failed"
         );
-        emit Deposit(_commitment, insertedIndex, _timestamp);
+
+        uint256[] memory liq_array = flatten_liquidated_array();
+
+        // Verify proof
+        bytes32[] memory public_inputs = new bytes32[](6);
+        public_inputs[0] = _new_note_hash;
+        public_inputs[1] = _new_will_liq_price;
+        public_inputs[2] = _new_timestamp;
+        public_inputs[3] = _root;
+        public_inputs[4] = liquidated_array[0].liq_price;
+        public_inputs[5] = liquidated_array[0].timestamp;
+        public_inputs[6] = liquidated_array[1].liq_price;
+        public_inputs[7] = liquidated_array[1].timestamp;
+        public_inputs[8] = liquidated_array[2].liq_price;
+        public_inputs[9] = liquidated_array[2].timestamp;
+        public_inputs[10] = liquidated_array[3].liq_price;
+        public_inputs[11] = liquidated_array[3].timestamp;
+        public_inputs[12] = liquidated_array[4].liq_price;
+        public_inputs[13] = liquidated_array[4].timestamp;
+        public_inputs[14] = liquidated_array[5].liq_price;
+        public_inputs[15] = liquidated_array[5].timestamp;
+        public_inputs[16] = liquidated_array[6].liq_price;
+        public_inputs[17] = liquidated_array[6].timestamp;
+        public_inputs[18] = liquidated_array[7].liq_price;
+        public_inputs[19] = liquidated_array[7].timestamp;
+        public_inputs[20] = liquidated_array[8].liq_price;
+        public_inputs[21] = liquidated_array[8].timestamp;
+        public_inputs[22] = liquidated_array[9].liq_price;
+        public_inputs[23] = liquidated_array[9].timestamp;
+        public_inputs[24] = _old_nullifier;
+        public_inputs[25] = 0; // lend token out
+        public_inputs[26] = 0; // borrow token out
+        public_inputs[27] = _lend_amt; // lend token in
+        public_inputs[28] = 0; // borrow token in
+        require(
+            verifier.verify(_proof, public_inputs),
+            "Invalid deposit proof"
+        );
+
+        // New note commitment add to tree
+        require(
+            !commitments[_new_note_hash],
+            "The commitment has been submitted"
+        );
+        uint32 insertedIndex = _insert(_new_note_hash);
+        commitments[_new_note_hash] = true;
+
+        // if old nullifier is not zero (new note), check if it is spent
+        if (_old_nullifier != bytes32(0)) {
+            require(
+                nullifierHashes[_old_nullifier],
+                "The note has been already spent"
+            );
+            nullifierHashes[_old_nullifier] = true;
+        }
+
+        emit Deposit(_new_note_hash, insertedIndex, _new_timestamp);
     }
 
     // borrow funds from the contract
