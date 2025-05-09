@@ -84,7 +84,7 @@ contract zkLendTest is Test {
         mUSDC.mint(address(zk_lend_mixer), 100_000 * 1e6);
         mETH.mint(address(zk_lend_mixer), 100_000 * 1e18);
     }
-
+    // TODO: Make sure we have all required param to match BIG main circuit
     function _getWitnessAndProof(
         MyNote memory prev_note,
         MyNote memory new_note,
@@ -211,24 +211,7 @@ contract zkLendTest is Test {
                 leaves
             );
 
-        // // 3. Verify proof against the verifier contract.
-        // assertTrue(
-        //     verifier.verifyProof(
-        //         pA,
-        //         pB,
-        //         pC,
-        //         [
-        //             uint256(root),
-        //             uint256(nullifierHash),
-        //             uint256(uint160(recipient)),
-        //             uint256(uint160(relayer)),
-        //             fee,
-        //             refund
-        //         ]
-        //     )
-        // );
-
-        // 4. Withdraw funds from the contract.
+        // 3. Borrow funds from the contract. (verifying logic is in borrow function)
         // assertEq(recipient.balance, 0);
         // assertEq(address(mixer).balance, 1 ether);
         zk_lend_mixer.borrow(
