@@ -156,8 +156,6 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             "Token lend failed"
         );
 
-        uint256[] memory liq_array = flatten_liquidated_array();
-
         // Verify proof
         bytes32[] memory public_inputs = new bytes32[](6);
         public_inputs[0] = _new_note_hash;
