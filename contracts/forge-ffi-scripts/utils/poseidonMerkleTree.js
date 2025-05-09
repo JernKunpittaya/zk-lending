@@ -4,7 +4,7 @@ const { MerkleTree } = require("fixed-merkle-tree");
 const { leBufferToBigint, hexToBigint } = require("./bigint.js");
 
 // Constants from MerkleTreeWithHistory.sol
-const MERKLE_TREE_HEIGHT = 20;
+const MERKLE_TREE_HEIGHT = 12;
 
 // This matches the zeros function in MerkleTreeWithHistory.sol
 const ZERO_VALUES = [
@@ -20,14 +20,6 @@ const ZERO_VALUES = [
   "0702ab83a135d7f55350ab1bfaa90babd8fc1d2b3e6a7215381a7b2213d6c5ce",
   "2eecc0de814cfd8c57ce882babb2e30d1da56621aef7a47f3291cffeaec26ad7",
   "280bc02145c155d5833585b6c7b08501055157dd30ce005319621dc462d33b47",
-  "045132221d1fa0a7f4aed8acd2cbec1e2189b7732ccb2ec272b9c60f0d5afc5b",
-  "27f427ccbf58a44b1270abbe4eda6ba53bd6ac4d88cf1e00a13c4371ce71d366",
-  "1617eaae5064f26e8f8a6493ae92bfded7fde71b65df1ca6d5dcec0df70b2cef",
-  "20c6b400d0ea1b15435703c31c31ee63ad7ba5c8da66cec2796feacea575abca",
-  "09589ddb438723f53a8e57bdada7c5f8ed67e8fece3889a73618732965645eec",
-  "0064b6a738a5ff537db7b220f3394f0ecbd35bfd355c5425dc1166bf3236079b",
-  "095de56281b1d5055e897c3574ff790d5ee81dbc5df784ad2d67795e557c9e9f",
-  "11cf2e2887aa21963a6ec14289183efe4d4c60f14ecd3d6fe0beebdf855a9b63",
 ].map(hexToBigint);
 
 // Creates a fixed height merkle-tree with Poseidon hash function (just like MerkleTreeWithHistory.sol)

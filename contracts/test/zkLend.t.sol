@@ -64,7 +64,7 @@ contract zkLendTest is Test {
 
         mUSDC = new MockToken("Mock USDC", "mUSDC", 6, 1_000_000 * 1e6);
         mETH = new MockToken("Mock ETH", "mETH", 18, 1_000_000 * 1e18);
-        zk_lend_mixer = new zkLend(verifier, IHasher(poseidonHasher), 20, mETH, mUSDC);
+        zk_lend_mixer = new zkLend(verifier, IHasher(poseidonHasher), 12, mETH, mUSDC);
         // TODO: Shouldnt need this mint directly once we support two side market 
         mUSDC.mint(address(zk_lend_mixer), 100_000 * 1e6);
         mETH.mint(address(zk_lend_mixer), 100_000 * 1e18);
