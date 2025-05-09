@@ -4,15 +4,15 @@ pragma solidity ^0.8.0;
 import {Test, console} from "forge-std/Test.sol";
 import "forge-std/console.sol";
 // import {Groth16Verifier} from "src/Verifier.sol";
-import {ETHzkLend, IVerifier, IHasher} from "src/ETHzkLend.sol";
+import {zkLend, IVerifier, IHasher} from "src/zkLend.sol";
 import {MockToken} from "src/MockToken.sol";
 
 
-contract ETHzkLendTest is Test {
+contract zkLendTest is Test {
     uint256 public constant FIELD_SIZE = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
     uint256 public constant LIQUIDATED_ARRAY_BUCKETS = 10; // hence 20 elements, since each bucket has info (liq_price, timestamp)
     IVerifier public verifier;
-    ETHzkLend public lend_mixer;
+    zkLend public lend_mixer;
 
     // Test vars
     address public recipient = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -60,7 +60,7 @@ contract ETHzkLendTest is Test {
          * - hasher: Poseidon hasher
          * - merkleTreeHeight: 20
          */
-        lend_mixer = new ETHzkLend(verifier, IHasher(poseidonHasher), 20);
+        lend_mixer = new zkLend(verifier, IHasher(poseidonHasher), 20);
     }
 
     function _getWitnessAndProof(

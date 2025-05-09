@@ -24,7 +24,7 @@ interface IVerifier {
     ) external view returns (bool);
 }
 
-abstract contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
+contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     IVerifier public immutable verifier;
     uint256[] public liquidated_array;
 
@@ -68,10 +68,9 @@ abstract contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         emit Deposit(_commitment, insertedIndex, _timestamp);
     }
 
-    /**
-     * @dev this function is defined in a child contract
-     */
-    function _processDeposit(uint256 _lend_amt) internal virtual;
+    function _processDeposit(uint256 _lend_amt) internal {
+        require(msg.value == _lend_amt, "Please lend the same number of ETH as you stated");
+    }
 
     /**
      * @dev Withdraw a deposit from the contract. `proof` is a zkSNARK proof data, and input is an array of circuit public inputs
@@ -123,7 +122,14 @@ abstract contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     /**
      * @dev this function is defined in a child contract
      */
-    function _processBorrow(address _recipient, uint256 _additional_borrow_amt, MockToken _token) internal virtual;
+    function _processBorrow(address _recipient, uint256 _additional_borrow_amt, MockToken _token) internal {
+                // sanity checks
+        require(msg.value == 0, "Message value is supposed to be zero for ETH instance");
+
+        // (bool success,) = _recipient.call{value: _additional_borrow_amt}("");
+        // require(success, "borrow fund to _recipient did not go thru");
+        require(_token.transfer(_recipient, _additional_borrow_amt), "Token borrow failed");
+    }
 
     /**
      * @dev whether a note is already spent
