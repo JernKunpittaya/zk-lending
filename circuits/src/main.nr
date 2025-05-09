@@ -383,11 +383,12 @@ fn global_will_liq_price(initial_will_liq_price: u64, timestamp: u64) -> u64 {
 // 3. lend, borrow, repay, withdraw - attempt to update the note and check aginst constraints
 fn main(
     new_note: MyNote,
-    new_note_hash: Field,
+    new_note_hash: pub Field,
     new_will_liq_price: pub u64,
     new_timestamp: pub u64,
     prev_note: MyNote,
-    prev_hash: pub Field,
+    prev_hash: Field,
+    prev_nullifier: Field,
     prev_index: u32,
     prev_hash_path: pub [Field; 3],
     root: pub Field,
@@ -398,6 +399,7 @@ fn main(
     borrow_token_in: pub u64,
 ) {
     // return the new note hash
+    assert(new_will_liq_price == new_note.will_liq_price);
 
     // assert that token in and out are mutually exclusive
     assert(lend_token_in * lend_token_out == 0);
@@ -407,6 +409,7 @@ fn main(
     // note: lend_amt, borrow_amt, will_liq_price = 0 mean empty note
     if (prev_note.lend_amt + prev_note.borrow_amt + prev_note.will_liq_price) > 0 {
         // validate the old note
+        assert(prev_nullifier == prev_note.nullifier);
         assert(hash_my_note(prev_note) == prev_hash);
         assert_inclusion_proof(prev_hash, prev_index, prev_hash_path, root);
     }
@@ -524,6 +527,7 @@ fn test_main_real(){
         timestamp_0,
         empty_note,
         zero_leaf,
+        zero_leaf,
         0,
         [zero_leaf, zero_leaf, zero_leaf],
         merkle_root,
@@ -576,6 +580,7 @@ fn test_main_real(){
         timestamp_0,
         last_note,
         last_note_hash,
+        last_note.nullifier,
         0,
         old_expected_new_note_hash_path,
         merkle_root,
