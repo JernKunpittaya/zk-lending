@@ -68,12 +68,8 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         MockToken _usdc
     ) MerkleTreeWithHistory(_merkleTreeHeight, _hasher) {
         verifier = _verifier;
-        Liquidated memory default_liquidated = Liquidated({
-            liq_price: 0,
-            timestamp: 0
-        });
         for (uint256 i = 0; i < LIQUIDATED_ARRAY_NUMBER; i++) {
-            liquidated_array[i] = default_liquidated;
+            liquidated_array[i] = Liquidated({liq_price: i + 1, timestamp: 0});
         }
         weth = _weth;
         usdc = _usdc;
