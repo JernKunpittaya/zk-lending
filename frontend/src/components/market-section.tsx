@@ -58,7 +58,6 @@ export function MarketSection({ className, ...props }: ComponentProps<"div">) {
             <TableHead>Deposits</TableHead>
             <TableHead>Borrowed</TableHead>
             <TableHead>Utilization</TableHead>
-            <TableHead>Action</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -94,11 +93,6 @@ export function MarketSection({ className, ...props }: ComponentProps<"div">) {
                 </div>
               </TableCell>
               <TableCell>{formatter.percent(asset.utilization)}</TableCell>
-              <TableCell>
-                <Button variant="ghost" size="sm">
-                  Deposit/Borrow
-                </Button>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>

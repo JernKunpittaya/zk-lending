@@ -9,6 +9,7 @@ import { env } from "@/env.mjs"
 import { siteConfig } from "@/config/site"
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/sonner"
+import { Providers } from "@/components/providers"
 import { ThemeProvider } from "@/components/theme-provider"
 
 const sans = Geist({ subsets: ["latin"], variable: "--font-sans" })
@@ -84,7 +85,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           defaultTheme="dark"
           disableTransitionOnChange
         >
-          {children}
+          <Providers>{children}</Providers>
           <Toaster />
         </ThemeProvider>
       </body>
