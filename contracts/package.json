@@ -4,11 +4,17 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
+    "@aztec/merkle-tree": "^0.86.0",
     "circom": "^0.5.46",
     "circomlib": "^2.0.5",
     "circomlibjs": "^0.1.7",
     "ethers": "^6.13.4",
     "fixed-merkle-tree": "^0.7.3",
-    "snarkjs": "^0.7.5"
+    "poseidon-lite": "^0.3.0",
+    "snarkjs": "^0.7.5",
+    "viem": "^2.29.1"
+  },
+  "devDependencies": {
+    "@types/circomlibjs": "^0.1.6"
   }
 }

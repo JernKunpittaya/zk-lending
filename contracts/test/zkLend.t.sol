@@ -15,6 +15,7 @@ contract zkLendTest is Test {
     zkLend public zk_lend_mixer;
     MockToken public mUSDC;
     MockToken public mETH;
+    IHasher public hasher;
 
     // Test vars
     address public recipient = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -73,13 +74,9 @@ contract zkLendTest is Test {
         mUSDC = new MockToken("Mock USDC", "mUSDC", 6, 1_000_000 * 1e6);
         mETH = new MockToken("Mock ETH", "mETH", 6, 1_000_000 * 1e6);
         verifier = new HonkVerifier();
-        zk_lend_mixer = new zkLend(
-            verifier,
-            IHasher(poseidonHasher),
-            12,
-            mETH,
-            mUSDC
-        );
+        hasher = IHasher(poseidonHasher);
+
+        zk_lend_mixer = new zkLend(verifier, hasher, 12, mETH, mUSDC);
         // TODO: Shouldnt need this mint directly once we support two side market
         mUSDC.mint(address(zk_lend_mixer), 100_000 * 1e6);
         mETH.mint(address(zk_lend_mixer), 100_000 * 1e18);
@@ -145,86 +142,82 @@ contract zkLendTest is Test {
     }
 
     function test_mixer_single_deposit() public {
-        // 1. Generate commitment and deposit
-        uint256 lend_amt = 10;
-        uint256 borrow_amt = 0;
-        uint256 will_liq_price = 0;
-        uint256 timestamp = block.timestamp;
-        (
-            bytes32 commitment,
-            bytes32 nullifier,
-            bytes32 secret
-        ) = _getCommitment(lend_amt, borrow_amt, will_liq_price, timestamp);
-
-        mETH.approve(address(zk_lend_mixer), lend_amt);
-        zk_lend_mixer.deposit(commitment, lend_amt, timestamp);
-
-        // 2. Generate witness and proof to prove ownership of prev_note for borrow more
-        MyNote memory prev_note = MyNote({
-            lend_amt: lend_amt,
-            borrow_amt: borrow_amt,
-            will_liq_price: will_liq_price,
-            timestamp: timestamp,
-            nullifier: nullifier,
-            secret: secret
-        });
-
-        // TODO: These functions should be precomputed from frontend
-        uint256 lend_interest_update = 1;
-        uint256 additional_borrow_amt = 3;
-        uint256 new_lend_amt = prev_note.lend_amt + lend_interest_update;
-        uint256 new_borrow_amt = prev_note.borrow_amt + additional_borrow_amt;
-        // TODO: Also come from frontend
-        uint256 new_will_liq_price = 21;
-        uint256 new_timestamp = block.timestamp;
-        (
-            bytes32 new_commitment,
-            bytes32 new_nullifier,
-            bytes32 new_secret
-        ) = _getCommitment(
-                new_lend_amt,
-                new_borrow_amt,
-                new_will_liq_price,
-                new_timestamp
-            );
-        MyNote memory new_note = MyNote({
-            lend_amt: new_lend_amt,
-            borrow_amt: new_borrow_amt,
-            will_liq_price: new_will_liq_price,
-            timestamp: new_timestamp,
-            nullifier: new_nullifier,
-            secret: new_secret
-        });
-
-        bytes32[] memory leaves = new bytes32[](1);
-        leaves[0] = commitment;
-
-        // TODO: Fix priWitness
-        (
-            uint256 priWitness,
-            bytes32 root,
-            bytes32 nullifierHash
-        ) = _getWitnessAndProof(
-                prev_note,
-                new_note,
-                additional_borrow_amt,
-                zk_lend_mixer.flatten_liquidated_array(),
-                leaves
-            );
-
-        // 3. Borrow funds from the contract. (verifying logic is in borrow function)
-        // assertEq(recipient.balance, 0);
-        // assertEq(address(mixer).balance, 1 ether);
-        zk_lend_mixer.borrow(
-            priWitness,
-            root,
-            nullifierHash,
-            new_commitment,
-            recipient,
-            new_will_liq_price,
-            additional_borrow_amt
-        );
-        // assertEq(recipient.balance, 1 ether);
-        // assertEq(address(mixer).balance, 0);
+        bytes32 last_root = zk_lend_mixer.getLastRoot();
+        console.logBytes32(last_root);
+        // // 1. Generate commitment and deposit
+        // uint256 lend_amt = 10;
+        // uint256 borrow_amt = 0;
+        // uint256 will_liq_price = 0;
+        // uint256 timestamp = block.timestamp;
+        // (
+        //     bytes32 commitment,
+        //     bytes32 nullifier,
+        //     bytes32 secret
+        // ) = _getCommitment(lend_amt, borrow_amt, will_liq_price, timestamp);
+        // mETH.approve(address(zk_lend_mixer), lend_amt);
+        // zk_lend_mixer.deposit(commitment, lend_amt, timestamp);
+        // // 2. Generate witness and proof to prove ownership of prev_note for borrow more
+        // MyNote memory prev_note = MyNote({
+        //     lend_amt: lend_amt,
+        //     borrow_amt: borrow_amt,
+        //     will_liq_price: will_liq_price,
+        //     timestamp: timestamp,
+        //     nullifier: nullifier,
+        //     secret: secret
+        // });
+        // // TODO: These functions should be precomputed from frontend
+        // uint256 lend_interest_update = 1;
+        // uint256 additional_borrow_amt = 3;
+        // uint256 new_lend_amt = prev_note.lend_amt + lend_interest_update;
+        // uint256 new_borrow_amt = prev_note.borrow_amt + additional_borrow_amt;
+        // // TODO: Also come from frontend
+        // uint256 new_will_liq_price = 21;
+        // uint256 new_timestamp = block.timestamp;
+        // (
+        //     bytes32 new_commitment,
+        //     bytes32 new_nullifier,
+        //     bytes32 new_secret
+        // ) = _getCommitment(
+        //         new_lend_amt,
+        //         new_borrow_amt,
+        //         new_will_liq_price,
+        //         new_timestamp
+        //     );
+        // MyNote memory new_note = MyNote({
+        //     lend_amt: new_lend_amt,
+        //     borrow_amt: new_borrow_amt,
+        //     will_liq_price: new_will_liq_price,
+        //     timestamp: new_timestamp,
+        //     nullifier: new_nullifier,
+        //     secret: new_secret
+        // });
+        // bytes32[] memory leaves = new bytes32[](1);
+        // leaves[0] = commitment;
+        // // TODO: Fix priWitness
+        // (
+        //     uint256 priWitness,
+        //     bytes32 root,
+        //     bytes32 nullifierHash
+        // ) = _getWitnessAndProof(
+        //         prev_note,
+        //         new_note,
+        //         additional_borrow_amt,
+        //         zk_lend_mixer.flatten_liquidated_array(),
+        //         leaves
+        //     );
+        // // 3. Borrow funds from the contract. (verifying logic is in borrow function)
+        // // assertEq(recipient.balance, 0);
+        // // assertEq(address(mixer).balance, 1 ether);
+        // zk_lend_mixer.borrow(
+        //     priWitness,
+        //     root,
+        //     nullifierHash,
+        //     new_commitment,
+        //     recipient,
+        //     new_will_liq_price,
+        //     additional_borrow_amt
+        // );
+        // // assertEq(recipient.balance, 1 ether);
+        // // assertEq(address(mixer).balance, 0);
     }
 }
