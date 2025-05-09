@@ -61,6 +61,13 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         uint32 leafIndex,
         uint256 timestamp
     );
+    event Claim(
+        bytes32 indexed commitment,
+        address to,
+        bytes32 nullifierHash,
+        uint32 leafIndex,
+        uint256 timestamp
+    );
 
     // event Withdrawal(address to, bytes32 nullifierHash, address indexed relayer, uint256 fee);
 
@@ -403,15 +410,84 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             _new_timestamp,
             _root,
             _old_nullifier,
+            _withdraw_amt,
             0,
             0,
-            0,
-            _withdraw_amt
+            0
         );
         require(
             verifier.verify(_proof, public_inputs),
             "Invalid withdraw proof"
         );
+
+        // New note commitment add to tree
+        require(
+            !commitments[_new_note_hash],
+            "The commitment has been submitted"
+        );
+        uint32 inserted_index = _insert(_new_note_hash);
+        commitments[_new_note_hash] = true;
+
+        // Check valid root
+        require(isKnownRoot(_root), "Cannot find your merkle root");
+
+        // Check old nullifier is not zero
+        require(_old_nullifier != bytes32(0), "Old nullifier must not be zero");
+
+        // Check old note nullifier
+        require(
+            nullifierHashes[_old_nullifier],
+            "The note has been already spent"
+        );
+        nullifierHashes[_old_nullifier] = true;
+
+        emit Withdraw(
+            _new_note_hash,
+            _to,
+            _old_nullifier,
+            inserted_index,
+            _new_timestamp
+        );
+    }
+
+    function claim(
+        bytes32 _new_note_hash,
+        bytes32 _new_will_liq_price,
+        uint256 _new_timestamp,
+        bytes32 _root,
+        bytes32 _old_nullifier,
+        bytes calldata _proof,
+        uint256 _claim_amt,
+        MockToken _claim_token,
+        address _to
+    ) external payable nonReentrant isWethOrUsdc(_claim_token) {
+        // TODO: check _new_will_liq_price is valid from some price oracle
+
+        // Check valid timestamp
+        require(
+            _new_timestamp > block.timestamp - 5 minutes,
+            "Invalid timestamp, must be within 5 minutes of proof generation"
+        );
+        require(
+            _new_timestamp <= block.timestamp,
+            "Invalid timestamp, must be in the past"
+        );
+
+        _claim_token.transferFrom(address(this), _to, _claim_amt);
+
+        // Verify proof
+        bytes32[] memory public_inputs = constructPublicInputs(
+            _new_note_hash,
+            _new_will_liq_price,
+            _new_timestamp,
+            _root,
+            _old_nullifier,
+            0,
+            _claim_amt,
+            0,
+            0
+        );
+        require(verifier.verify(_proof, public_inputs), "Invalid claim proof");
 
         // New note commitment add to tree
         require(
