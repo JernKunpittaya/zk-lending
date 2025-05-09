@@ -28,11 +28,11 @@ struct MyNote {
 }
 
 fn simple_hash(left: Field, right: Field) -> Field {
-    std::hash::poseidon2::Poseidon2::hash([left, right], 2)
+    std::hash::poseidon::bn254::hash_2([left, right])
 }
 
 fn hash_my_note(my_note: MyNote) -> Field {
-    std::hash::poseidon2::Poseidon2::hash(
+    std::hash::poseidon::bn254::hash_6(
         [
             my_note.lend_amt as Field,
             my_note.borrow_amt as Field,
@@ -40,8 +40,7 @@ fn hash_my_note(my_note: MyNote) -> Field {
             my_note.timestamp as Field,
             my_note.nullifier,
             my_note.nonce,
-        ],
-        6,
+        ]
     )
 }
 
