@@ -71,7 +71,7 @@ contract zkLendTest is Test {
          */
 
         mUSDC = new MockToken("Mock USDC", "mUSDC", 6, 1_000_000 * 1e6);
-        mETH = new MockToken("Mock ETH", "mETH", 18, 1_000_000 * 1e18);
+        mETH = new MockToken("Mock ETH", "mETH", 6, 1_000_000 * 1e6);
         verifier = new HonkVerifier();
         zk_lend_mixer = new zkLend(
             verifier,
@@ -84,6 +84,7 @@ contract zkLendTest is Test {
         mUSDC.mint(address(zk_lend_mixer), 100_000 * 1e6);
         mETH.mint(address(zk_lend_mixer), 100_000 * 1e18);
     }
+
     // TODO: Make sure we have all required param to match BIG main circuit
     function _getWitnessAndProof(
         MyNote memory prev_note,

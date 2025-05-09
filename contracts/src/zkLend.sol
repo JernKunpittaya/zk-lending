@@ -131,7 +131,7 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         uint256 _new_timestamp,
         bytes32 _root,
         bytes32 _old_nullifier,
-        bytes32 _proof,
+        bytes calldata _proof,
         uint256 _lend_amt,
         MockToken _lend_token
     ) external payable nonReentrant isWethOrUsdc(_lend_token) {
@@ -160,32 +160,32 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         bytes32[] memory public_inputs = new bytes32[](6);
         public_inputs[0] = _new_note_hash;
         public_inputs[1] = _new_will_liq_price;
-        public_inputs[2] = _new_timestamp;
+        public_inputs[2] = bytes32(_new_timestamp);
         public_inputs[3] = _root;
-        public_inputs[4] = liquidated_array[0].liq_price;
-        public_inputs[5] = liquidated_array[0].timestamp;
-        public_inputs[6] = liquidated_array[1].liq_price;
-        public_inputs[7] = liquidated_array[1].timestamp;
-        public_inputs[8] = liquidated_array[2].liq_price;
-        public_inputs[9] = liquidated_array[2].timestamp;
-        public_inputs[10] = liquidated_array[3].liq_price;
-        public_inputs[11] = liquidated_array[3].timestamp;
-        public_inputs[12] = liquidated_array[4].liq_price;
-        public_inputs[13] = liquidated_array[4].timestamp;
-        public_inputs[14] = liquidated_array[5].liq_price;
-        public_inputs[15] = liquidated_array[5].timestamp;
-        public_inputs[16] = liquidated_array[6].liq_price;
-        public_inputs[17] = liquidated_array[6].timestamp;
-        public_inputs[18] = liquidated_array[7].liq_price;
-        public_inputs[19] = liquidated_array[7].timestamp;
-        public_inputs[20] = liquidated_array[8].liq_price;
-        public_inputs[21] = liquidated_array[8].timestamp;
-        public_inputs[22] = liquidated_array[9].liq_price;
-        public_inputs[23] = liquidated_array[9].timestamp;
+        public_inputs[4] = bytes32(liquidated_array[0].liq_price);
+        public_inputs[5] = bytes32(liquidated_array[0].timestamp);
+        public_inputs[6] = bytes32(liquidated_array[1].liq_price);
+        public_inputs[7] = bytes32(liquidated_array[1].timestamp);
+        public_inputs[8] = bytes32(liquidated_array[2].liq_price);
+        public_inputs[9] = bytes32(liquidated_array[2].timestamp);
+        public_inputs[10] = bytes32(liquidated_array[3].liq_price);
+        public_inputs[11] = bytes32(liquidated_array[3].timestamp);
+        public_inputs[12] = bytes32(liquidated_array[4].liq_price);
+        public_inputs[13] = bytes32(liquidated_array[4].timestamp);
+        public_inputs[14] = bytes32(liquidated_array[5].liq_price);
+        public_inputs[15] = bytes32(liquidated_array[5].timestamp);
+        public_inputs[16] = bytes32(liquidated_array[6].liq_price);
+        public_inputs[17] = bytes32(liquidated_array[6].timestamp);
+        public_inputs[18] = bytes32(liquidated_array[7].liq_price);
+        public_inputs[19] = bytes32(liquidated_array[7].timestamp);
+        public_inputs[20] = bytes32(liquidated_array[8].liq_price);
+        public_inputs[21] = bytes32(liquidated_array[8].timestamp);
+        public_inputs[22] = bytes32(liquidated_array[9].liq_price);
+        public_inputs[23] = bytes32(liquidated_array[9].timestamp);
         public_inputs[24] = _old_nullifier;
         public_inputs[25] = 0; // lend token out
         public_inputs[26] = 0; // borrow token out
-        public_inputs[27] = _lend_amt; // lend token in
+        public_inputs[27] = bytes32(_lend_amt); // lend token in
         public_inputs[28] = 0; // borrow token in
         require(
             verifier.verify(_proof, public_inputs),
@@ -212,196 +212,196 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         emit Deposit(_new_note_hash, insertedIndex, _new_timestamp);
     }
 
-    // borrow funds from the contract
-    function borrow(
-        uint256 _priWitness,
-        bytes32 _root,
-        bytes32 _nullifierHash,
-        bytes32 _commitment,
-        address _recipient,
-        uint256 _will_liq_price,
-        uint256 _additional_borrow_amt
-    ) external payable nonReentrant {
-        require(
-            !nullifierHashes[_nullifierHash],
-            "The note has been already spent"
-        );
-        require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
+    // // borrow funds from the contract
+    // function borrow(
+    //     uint256 _priWitness,
+    //     bytes32 _root,
+    //     bytes32 _nullifierHash,
+    //     bytes32 _commitment,
+    //     address _recipient,
+    //     uint256 _will_liq_price,
+    //     uint256 _additional_borrow_amt
+    // ) external payable nonReentrant {
+    //     require(
+    //         !nullifierHashes[_nullifierHash],
+    //         "The note has been already spent"
+    //     );
+    //     require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
 
-        // TODO: Do verify logic
-        // require(
-        //     verifier.verifyProof(
-        //         [_priWitness],
-        //         [
-        //             uint256(_root),
-        //             uint256(_nullifierHash),
-        //             uint256(_commitment),
-        //             uint256(_will_liq_price),
-        //             uint256(_additional_borrow_amt),
-        //             uint256(_liquidated_array)
-        //         ]
-        //     ),
-        //     "Invalid borrow proof"
-        // );
+    //     // TODO: Do verify logic
+    //     // require(
+    //     //     verifier.verifyProof(
+    //     //         [_priWitness],
+    //     //         [
+    //     //             uint256(_root),
+    //     //             uint256(_nullifierHash),
+    //     //             uint256(_commitment),
+    //     //             uint256(_will_liq_price),
+    //     //             uint256(_additional_borrow_amt),
+    //     //             uint256(_liquidated_array)
+    //     //         ]
+    //     //     ),
+    //     //     "Invalid borrow proof"
+    //     // );
 
-        nullifierHashes[_nullifierHash] = true;
-        require(!commitments[_commitment], "The commitment has been submitted");
-        uint32 insertedIndex = _insert(_commitment);
-        commitments[_commitment] = true;
-        require(
-            borrow_token.transfer(_recipient, _additional_borrow_amt),
-            "Token borrow failed"
-        );
-        emit Borrow(
-            _recipient,
-            _nullifierHash,
-            _commitment,
-            insertedIndex,
-            block.timestamp
-        );
-    }
+    //     nullifierHashes[_nullifierHash] = true;
+    //     require(!commitments[_commitment], "The commitment has been submitted");
+    //     uint32 insertedIndex = _insert(_commitment);
+    //     commitments[_commitment] = true;
+    //     require(
+    //         borrow_token.transfer(_recipient, _additional_borrow_amt),
+    //         "Token borrow failed"
+    //     );
+    //     emit Borrow(
+    //         _recipient,
+    //         _nullifierHash,
+    //         _commitment,
+    //         insertedIndex,
+    //         block.timestamp
+    //     );
+    // }
 
-    // lend funds to the contract
-    function lend(
-        uint256 _priWitness,
-        bytes32 _root,
-        bytes32 _nullifierHash,
-        bytes32 _commitment,
-        uint256 _will_liq_price,
-        uint256 _additional_lend_amt
-    ) external payable nonReentrant {
-        require(
-            !nullifierHashes[_nullifierHash],
-            "The note has been already spent"
-        );
-        require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
+    // // lend funds to the contract
+    // function lend(
+    //     uint256 _priWitness,
+    //     bytes32 _root,
+    //     bytes32 _nullifierHash,
+    //     bytes32 _commitment,
+    //     uint256 _will_liq_price,
+    //     uint256 _additional_lend_amt
+    // ) external payable nonReentrant {
+    //     require(
+    //         !nullifierHashes[_nullifierHash],
+    //         "The note has been already spent"
+    //     );
+    //     require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
 
-        // TODO: Do verify logic
-        // require(
-        //     verifier.verifyProof(
-        //         [_priWitness],
-        //         [
-        //             uint256(_root),
-        //             uint256(_nullifierHash),
-        //             uint256(_commitment),
-        //             uint256(_will_liq_price),
-        //             uint256(_additional_borrow_amt),
-        //             uint256(_liquidated_array)
-        //         ]
-        //     ),
-        //     "Invalid borrow proof"
-        // );
+    //     // TODO: Do verify logic
+    //     // require(
+    //     //     verifier.verifyProof(
+    //     //         [_priWitness],
+    //     //         [
+    //     //             uint256(_root),
+    //     //             uint256(_nullifierHash),
+    //     //             uint256(_commitment),
+    //     //             uint256(_will_liq_price),
+    //     //             uint256(_additional_borrow_amt),
+    //     //             uint256(_liquidated_array)
+    //     //         ]
+    //     //     ),
+    //     //     "Invalid borrow proof"
+    //     // );
 
-        nullifierHashes[_nullifierHash] = true;
-        require(!commitments[_commitment], "The commitment has been submitted");
-        uint32 insertedIndex = _insert(_commitment);
-        commitments[_commitment] = true;
-        require(
-            lend_token.transferFrom(
-                msg.sender,
-                address(this),
-                _additional_lend_amt
-            ),
-            "Token lend failed"
-        );
-        emit Lend(_nullifierHash, _commitment, insertedIndex, block.timestamp);
-    }
+    //     nullifierHashes[_nullifierHash] = true;
+    //     require(!commitments[_commitment], "The commitment has been submitted");
+    //     uint32 insertedIndex = _insert(_commitment);
+    //     commitments[_commitment] = true;
+    //     require(
+    //         lend_token.transferFrom(
+    //             msg.sender,
+    //             address(this),
+    //             _additional_lend_amt
+    //         ),
+    //         "Token lend failed"
+    //     );
+    //     emit Lend(_nullifierHash, _commitment, insertedIndex, block.timestamp);
+    // }
 
-    // repay what is borrowed back to the contract
-    function repay(
-        uint256 _priWitness,
-        bytes32 _root,
-        bytes32 _nullifierHash,
-        bytes32 _commitment,
-        address _recipient,
-        uint256 _will_liq_price,
-        uint256 _repay_borrow_amt
-    ) external payable nonReentrant {
-        require(
-            !nullifierHashes[_nullifierHash],
-            "The note has been already spent"
-        );
-        require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
+    // // repay what is borrowed back to the contract
+    // function repay(
+    //     uint256 _priWitness,
+    //     bytes32 _root,
+    //     bytes32 _nullifierHash,
+    //     bytes32 _commitment,
+    //     address _recipient,
+    //     uint256 _will_liq_price,
+    //     uint256 _repay_borrow_amt
+    // ) external payable nonReentrant {
+    //     require(
+    //         !nullifierHashes[_nullifierHash],
+    //         "The note has been already spent"
+    //     );
+    //     require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
 
-        // TODO: Do verify logic
-        // require(
-        //     verifier.verifyProof(
-        //         [_priWitness],
-        //         [
-        //             uint256(_root),
-        //             uint256(_nullifierHash),
-        //             uint256(_commitment),
-        //             uint256(_will_liq_price),
-        //             uint256(_additional_borrow_amt),
-        //             uint256(_liquidated_array)
-        //         ]
-        //     ),
-        //     "Invalid borrow proof"
-        // );
+    //     // TODO: Do verify logic
+    //     // require(
+    //     //     verifier.verifyProof(
+    //     //         [_priWitness],
+    //     //         [
+    //     //             uint256(_root),
+    //     //             uint256(_nullifierHash),
+    //     //             uint256(_commitment),
+    //     //             uint256(_will_liq_price),
+    //     //             uint256(_additional_borrow_amt),
+    //     //             uint256(_liquidated_array)
+    //     //         ]
+    //     //     ),
+    //     //     "Invalid borrow proof"
+    //     // );
 
-        nullifierHashes[_nullifierHash] = true;
-        require(!commitments[_commitment], "The commitment has been submitted");
-        uint32 insertedIndex = _insert(_commitment);
-        commitments[_commitment] = true;
-        require(
-            borrow_token.transferFrom(
-                msg.sender,
-                address(this),
-                _repay_borrow_amt
-            ),
-            "Token repay failed"
-        );
-        emit Repay(_nullifierHash, _commitment, insertedIndex, block.timestamp);
-    }
+    //     nullifierHashes[_nullifierHash] = true;
+    //     require(!commitments[_commitment], "The commitment has been submitted");
+    //     uint32 insertedIndex = _insert(_commitment);
+    //     commitments[_commitment] = true;
+    //     require(
+    //         borrow_token.transferFrom(
+    //             msg.sender,
+    //             address(this),
+    //             _repay_borrow_amt
+    //         ),
+    //         "Token repay failed"
+    //     );
+    //     emit Repay(_nullifierHash, _commitment, insertedIndex, block.timestamp);
+    // }
 
-    // withdraw funds from the contract
-    function withdraw(
-        uint256 _priWitness,
-        bytes32 _root,
-        bytes32 _nullifierHash,
-        bytes32 _commitment,
-        address _recipient,
-        uint256 _will_liq_price,
-        uint256 _withdraw_lend_amt
-    ) external payable nonReentrant {
-        require(
-            !nullifierHashes[_nullifierHash],
-            "The note has been already spent"
-        );
-        require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
+    // // withdraw funds from the contract
+    // function withdraw(
+    //     uint256 _priWitness,
+    //     bytes32 _root,
+    //     bytes32 _nullifierHash,
+    //     bytes32 _commitment,
+    //     address _recipient,
+    //     uint256 _will_liq_price,
+    //     uint256 _withdraw_lend_amt
+    // ) external payable nonReentrant {
+    //     require(
+    //         !nullifierHashes[_nullifierHash],
+    //         "The note has been already spent"
+    //     );
+    //     require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
 
-        // TODO: Do verify logic
-        // require(
-        //     verifier.verifyProof(
-        //         [_priWitness],
-        //         [
-        //             uint256(_root),
-        //             uint256(_nullifierHash),
-        //             uint256(_commitment),
-        //             uint256(_will_liq_price),
-        //             uint256(_additional_borrow_amt),
-        //             uint256(_liquidated_array)
-        //         ]
-        //     ),
-        //     "Invalid borrow proof"
-        // );
+    //     // TODO: Do verify logic
+    //     // require(
+    //     //     verifier.verifyProof(
+    //     //         [_priWitness],
+    //     //         [
+    //     //             uint256(_root),
+    //     //             uint256(_nullifierHash),
+    //     //             uint256(_commitment),
+    //     //             uint256(_will_liq_price),
+    //     //             uint256(_additional_borrow_amt),
+    //     //             uint256(_liquidated_array)
+    //     //         ]
+    //     //     ),
+    //     //     "Invalid borrow proof"
+    //     // );
 
-        nullifierHashes[_nullifierHash] = true;
-        require(!commitments[_commitment], "The commitment has been submitted");
-        uint32 insertedIndex = _insert(_commitment);
-        commitments[_commitment] = true;
-        require(
-            lend_token.transfer(_recipient, _withdraw_lend_amt),
-            "Token withdraw failed"
-        );
-        emit Withdraw(
-            _recipient,
-            _nullifierHash,
-            _commitment,
-            insertedIndex,
-            block.timestamp
-        );
-    }
+    //     nullifierHashes[_nullifierHash] = true;
+    //     require(!commitments[_commitment], "The commitment has been submitted");
+    //     uint32 insertedIndex = _insert(_commitment);
+    //     commitments[_commitment] = true;
+    //     require(
+    //         lend_token.transfer(_recipient, _withdraw_lend_amt),
+    //         "Token withdraw failed"
+    //     );
+    //     emit Withdraw(
+    //         _recipient,
+    //         _nullifierHash,
+    //         _commitment,
+    //         insertedIndex,
+    //         block.timestamp
+    //     );
+    // }
 
     /**
      * @dev whether a note is already spent
