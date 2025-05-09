@@ -1,3 +1,9 @@
+/*
+ * Zringotts Circuit - zk lending operation
+ * This circuit is an all in one zk lending market state transition circuit.
+ * Author: jernkun, yoyoismee, yoisha
+*/
+
 use dep::std;
 
 // ==== Global config ==== (percentage-based)
@@ -370,16 +376,16 @@ fn global_will_liq_price(initial_will_liq_price: u64, timestamp: u64) -> u64 {
     borrow_factor * initial_will_liq_price / lend_factor
 }
 
-// Zringotts Circuit - all in one zk banking operation
+// Zringotts Circuit - all in one zk banking operation 
+// the name have nothing to do with goblins, wizzard, or british writers. (don't sue us)
 // 1. init note - if old is empty init note with no check
 // 2. if liquidated, force sell all assets and credit it as borrow asset
 // 3. lend, borrow, repay, withdraw - attempt to update the note and check aginst constraints
 fn main(
+    new_note: MyNote,
     new_note_hash: Field,
     new_will_liq_price: pub u64,
     new_timestamp: pub u64,
-    new_nullifier: Field,
-    new_nonce: Field,
     prev_note: MyNote,
     prev_hash: pub Field,
     prev_index: u32,
@@ -422,15 +428,13 @@ fn main(
         assert(borrow_token_in == 0);
         assert(lend_token_out == 0);
         assert(lend_token_in == 0);
-        let my_note = MyNote {
-            lend_amt: 0,
-            borrow_amt: 0,
-            will_liq_price: 0,
-            timestamp: new_timestamp,
-            nullifier: new_nullifier,
-            nonce: new_nonce,
-        };
-        assert(new_note_hash == hash_my_note(my_note));
+
+        assert(new_note.lend_amt == 0);
+        assert(new_note.borrow_amt == 0);
+        assert(new_note.will_liq_price == 0);
+        assert(new_note.timestamp == new_timestamp);
+
+        assert(new_note_hash == hash_my_note(new_note)); // create new empty note
     } else {
         // assert that the old note is not liquidated
         assert_non_liquidated(prev_note, liquidated_array);
@@ -443,6 +447,9 @@ fn main(
         )
             + lend_token_in
             - lend_token_out;
+
+        assert(new_lend_amt >= new_note.lend_amt);   // check for note allow for same or lower lend_amt
+
         let new_borrow_amt = update_amt(
             prev_note.borrow_amt,
             prev_note.timestamp,
@@ -451,26 +458,146 @@ fn main(
         )
             + borrow_token_in
             - borrow_token_out;
-        let my_note = MyNote {
-            lend_amt: new_lend_amt,
-            borrow_amt: new_borrow_amt,
-            will_liq_price: new_will_liq_price,
-            timestamp: new_timestamp,
-            nullifier: new_nullifier,
-            nonce: new_nonce,
-        };
-        assert_ltv(my_note);
+        assert(new_borrow_amt <= new_note.borrow_amt); // check for note allow for same or more borrow_amt
+
+
+        assert_ltv(new_note);
         // assert that the new note is not liquidated
-        assert_non_liquidated(my_note, liquidated_array);
-        assert(new_note_hash == hash_my_note(my_note));
+        assert_non_liquidated(new_note, liquidated_array);
+        assert(new_note_hash == hash_my_note(new_note));
     }
     // return 0 as placeholder
+}
+
+#[test]
+fn test_main_real(){
+
+
+    // create empty tree
+    let zero_leaf = 0 as Field;
+    let mut merkle_leaves: [Field; 8] = (
+        [
+            zero_leaf,
+            zero_leaf,
+            zero_leaf,
+            zero_leaf,
+            zero_leaf,
+            zero_leaf,
+            zero_leaf,
+            zero_leaf,
+        ]
+    );
+    let mut merkle_tree = construct_merkle_tree(merkle_leaves);
+    let mut merkle_root = merkle_tree[6];
+    let mut liquidated_array: [Liquidated; 3] = [
+        Liquidated { liq_price: 1500, timestamp: 0 },
+        Liquidated { liq_price: 1600, timestamp: 0 },
+        Liquidated { liq_price: 1700, timestamp: 0 },
+    ];
+
+    // a, b deposit and borrow right away
+    let a_init_lend_amt = 500; // already scale by (10^4)
+    let a_init_will_liq_price = 2800;
+    let timestamp_0 = 123;
+    let a_init_borrow_amt = 1500;
+    let empty_note = MyNote {
+        lend_amt: 0,
+        borrow_amt: 0,
+        will_liq_price: 0,
+        timestamp: 0,
+        nullifier: 0 as Field,
+        nonce: 0 as Field,
+    };
+    let expected_new_note = MyNote {
+        lend_amt: a_init_lend_amt,
+        borrow_amt: a_init_borrow_amt,
+        will_liq_price: a_init_will_liq_price,
+        timestamp: timestamp_0,
+        nullifier: 112 as Field,
+        nonce: 13 as Field,
+    };
+    let expected_new_note_hash = hash_my_note(expected_new_note);
+    main(
+        expected_new_note,
+        expected_new_note_hash,
+        a_init_will_liq_price,
+        timestamp_0,
+        empty_note,
+        zero_leaf,
+        0,
+        [zero_leaf, zero_leaf, zero_leaf],
+        merkle_root,
+        liquidated_array,
+        0,
+        0,
+        a_init_lend_amt,
+        a_init_borrow_amt,
+    );
+
+    // test borrow
+    let last_note_hash = expected_new_note_hash;
+    let last_note_index = 0;
+    let merkle_leaves = [
+        last_note_hash,
+        zero_leaf,
+        zero_leaf,
+        zero_leaf,
+        zero_leaf,
+        zero_leaf,
+        zero_leaf,
+        zero_leaf,
+    ];
+    merkle_tree = construct_merkle_tree(merkle_leaves);
+    merkle_root = merkle_tree[6];
+    let last_note_hash_path = [zero_leaf, merkle_tree[1], merkle_tree[5]];
+    
+
+    let last_note = expected_new_note;
+
+    let to_borrow_amt = 500;
+    let expected_new_borrow_amt = a_init_borrow_amt + to_borrow_amt;
+    let expected_new_note = MyNote {
+        lend_amt: a_init_lend_amt,
+        borrow_amt: expected_new_borrow_amt,
+        will_liq_price: a_init_will_liq_price,
+        timestamp: timestamp_0,
+        nullifier: 114 as Field,
+        nonce: 19 as Field,
+    };
+    let expected_new_note_hash = hash_my_note(expected_new_note);
+    let old_expected_new_note_hash_path = [zero_leaf, merkle_tree[1], merkle_tree[5]];
+    
+    assert_inclusion_proof(last_note_hash, 0, old_expected_new_note_hash_path, merkle_root);
+
+    main(
+        expected_new_note,
+        expected_new_note_hash,
+        a_init_will_liq_price,
+        timestamp_0,
+        last_note,
+        last_note_hash,
+        0,
+        old_expected_new_note_hash_path,
+        merkle_root,
+        liquidated_array,
+        0,
+        to_borrow_amt,
+        0,
+        0,
+    );
+
+
+
+    
+
+
 }
 
 #[test]
 fn test_main() {
     // Time = 0, current ETH price = 3000,
     // there exists buckets at liquidation price 2800, 2600, 2400, 2200
+ 
 
     let zero_leaf = 0 as Field;
     let mut merkle_leaves: [Field; 8] = (
