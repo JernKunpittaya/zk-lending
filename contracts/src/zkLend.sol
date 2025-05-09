@@ -145,6 +145,10 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             _new_timestamp > block.timestamp - 5 minutes,
             "Invalid timestamp, must be within 5 minutes of proof generation"
         );
+        require(
+            _new_timestamp <= block.timestamp,
+            "Invalid timestamp, must be in the past"
+        );
 
         // Transfer token from user to contract
         require(
