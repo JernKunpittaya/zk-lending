@@ -6,10 +6,8 @@ import {zkLend, IHasher} from "src/zkLend.sol";
 import {MockToken} from "src/MockToken.sol";
 import {HonkVerifier} from "src/Verifier.sol";
 
-contract zkLendTest is Script {
+contract Deploy is Script {
     HonkVerifier public verifier;
-    uint256 public constant FIELD_SIZE =
-        21888242871839275222246405745257275088548364400416034343698204186575808495617;
     zkLend public zk_lend_mixer;
     MockToken public mUSDC;
     MockToken public mETH;
@@ -27,6 +25,8 @@ contract zkLendTest is Script {
     }
 
     function run() public {
+        vm.startBroadcast();
+
         // Deploy Poseidon hasher contract.
         string[] memory inputs = new string[](3);
         inputs[0] = "node";
@@ -53,5 +53,7 @@ contract zkLendTest is Script {
         zk_lend_mixer = new zkLend(verifier, hasher, 12, mETH, mUSDC);
         // mUSDC.mint(address(zk_lend_mixer), 1_000_000 * 1e6);
         // mETH.mint(address(zk_lend_mixer), 100_000 * 1e18);
+
+        vm.stopBroadcast();
     }
 }
