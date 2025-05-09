@@ -44,39 +44,12 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     // we store all commitments just to prevent accidental deposits with the same commitment
     mapping(bytes32 => bool) public commitments;
 
-    event Deposit(
-        bytes32 indexed commitment,
-        bytes32 nullifierHash,
-        uint32 leafIndex,
-        uint256 timestamp
-    );
-    event Borrow(
-        bytes32 indexed commitment,
-        address to,
-        bytes32 nullifierHash,
-        uint32 leafIndex,
-        uint256 timestamp
-    );
-    event Repay(
-        bytes32 indexed commitment,
-        bytes32 nullifierHash,
-        uint32 leafIndex,
-        uint256 timestamp
-    );
-    event Withdraw(
-        bytes32 indexed commitment,
-        address to,
-        bytes32 nullifierHash,
-        uint32 leafIndex,
-        uint256 timestamp
-    );
-    event Claim(
-        bytes32 indexed commitment,
-        address to,
-        bytes32 nullifierHash,
-        uint32 leafIndex,
-        uint256 timestamp
-    );
+    event Deposit(bytes32 nullifierHash, uint256 timestamp);
+    event Borrow(address to, bytes32 nullifierHash, uint256 timestamp);
+    event Repay(bytes32 nullifierHash, uint256 timestamp);
+    event Withdraw(address to, bytes32 nullifierHash, uint256 timestamp);
+    event Claim(address to, bytes32 nullifierHash, uint256 timestamp);
+    event CommitmentAdded(bytes32 indexed commitment, uint32 indexed leafIndex);
 
     // event Withdrawal(address to, bytes32 nullifierHash, address indexed relayer, uint256 fee);
 
@@ -249,12 +222,8 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             state.usdc_deposit_amount += int256(_lend_amt);
         }
 
-        emit Deposit(
-            _new_note_hash,
-            _old_nullifier,
-            inserted_index,
-            _new_timestamp
-        );
+        emit CommitmentAdded(_new_note_hash, inserted_index);
+        emit Deposit(_old_nullifier, _new_timestamp);
     }
 
     function borrow(
@@ -323,13 +292,8 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             state.usdc_borrow_amount += int256(_borrow_amt);
         }
 
-        emit Borrow(
-            _new_note_hash,
-            _to,
-            _old_nullifier,
-            inserted_index,
-            _new_timestamp
-        );
+        emit CommitmentAdded(_new_note_hash, inserted_index);
+        emit Borrow(_to, _old_nullifier, _new_timestamp);
     }
 
     function repay(
@@ -397,12 +361,8 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             state.usdc_borrow_amount -= int256(_repay_amt);
         }
 
-        emit Repay(
-            _new_note_hash,
-            _old_nullifier,
-            inserted_index,
-            _new_timestamp
-        );
+        emit CommitmentAdded(_new_note_hash, inserted_index);
+        emit Repay(_old_nullifier, _new_timestamp);
     }
 
     function withdraw(
@@ -474,13 +434,8 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             state.usdc_deposit_amount -= int256(_withdraw_amt);
         }
 
-        emit Withdraw(
-            _new_note_hash,
-            _to,
-            _old_nullifier,
-            inserted_index,
-            _new_timestamp
-        );
+        emit CommitmentAdded(_new_note_hash, inserted_index);
+        emit Withdraw(_to, _old_nullifier, _new_timestamp);
     }
 
     function claim(
@@ -543,12 +498,7 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         );
         nullifierHashes[_old_nullifier] = true;
 
-        emit Withdraw(
-            _new_note_hash,
-            _to,
-            _old_nullifier,
-            inserted_index,
-            _new_timestamp
-        );
+        emit CommitmentAdded(_new_note_hash, inserted_index);
+        emit Withdraw(_to, _old_nullifier, _new_timestamp);
     }
 }
