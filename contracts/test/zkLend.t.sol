@@ -12,7 +12,9 @@ contract zkLendTest is Test {
     uint256 public constant FIELD_SIZE = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
     uint256 public constant LIQUIDATED_ARRAY_BUCKETS = 10; // hence 20 elements, since each bucket has info (liq_price, timestamp)
     IVerifier public verifier;
-    zkLend public lend_mixer;
+    zkLend public zk_lend_mixer;
+    MockToken public mUSDC;
+    MockToken public mETH;
 
     // Test vars
     address public recipient = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -60,7 +62,14 @@ contract zkLendTest is Test {
          * - hasher: Poseidon hasher
          * - merkleTreeHeight: 20
          */
-        lend_mixer = new zkLend(verifier, IHasher(poseidonHasher), 20);
+
+        mUSDC = new MockToken("Mock USDC", "mUSDC", 6, 1_000_000 * 1e6);
+        mETH = new MockToken("Mock ETH", "mETH", 18, 1_000_000 * 1e18);
+        zk_lend_mixer = new zkLend(verifier, IHasher(poseidonHasher), 20, mETH, mUSDC);
+        // TODO: Shouldnt need this mint directly once we support two side market 
+        mUSDC.mint(address(zk_lend_mixer), 100_000 * 1e6);
+        mETH.mint(address(zk_lend_mixer), 100_000 * 1e18);
+
     }
 
     function _getWitnessAndProof(
@@ -115,13 +124,16 @@ contract zkLendTest is Test {
 
 
     function test_mixer_single_deposit() public {
+
         // 1. Generate commitment and deposit
-        uint256 lend_amt = 10 ether;
+        uint256 lend_amt = 10;
         uint256 borrow_amt = 0;
         uint256 will_liq_price = 0;
         uint256 timestamp = block.timestamp;
         (bytes32 commitment, bytes32 nullifier, bytes32 secret) = _getCommitment(lend_amt, borrow_amt, will_liq_price, timestamp );
-        lend_mixer.deposit{value: lend_amt}(commitment, lend_amt, timestamp);
+
+        mETH.approve(address(zk_lend_mixer), lend_amt);
+        zk_lend_mixer.deposit(commitment, lend_amt, timestamp);
 
         // 2. Generate witness and proof to prove ownership of prev_note for borrow more
         MyNote memory prev_note = MyNote({
@@ -157,11 +169,7 @@ contract zkLendTest is Test {
         
         // TODO: Fix priWitness
         (uint256 priWitness, bytes32 root, bytes32 nullifierHash) =
-            _getWitnessAndProof(prev_note, new_note, additional_borrow_amt, lend_mixer.show_liquidated_array(), leaves);
-
-        MockToken token = new MockToken();
-        // Assume this already exist in our lend_mixer (in reality comes from another side lending)
-        token.transfer(address(lend_mixer), 1000 * 1e6);
+            _getWitnessAndProof(prev_note, new_note, additional_borrow_amt, zk_lend_mixer.show_liquidated_array(), leaves);
 
         // // 3. Verify proof against the verifier contract.
         // assertTrue(
@@ -183,7 +191,7 @@ contract zkLendTest is Test {
         // 4. Withdraw funds from the contract.
         // assertEq(recipient.balance, 0);
         // assertEq(address(mixer).balance, 1 ether);
-        lend_mixer.borrow(priWitness, root, nullifierHash, new_commitment, recipient, new_will_liq_price, additional_borrow_amt, lend_mixer.show_liquidated_array(), token);
+        zk_lend_mixer.borrow(priWitness, root, nullifierHash, new_commitment, recipient, new_will_liq_price, additional_borrow_amt, zk_lend_mixer.show_liquidated_array());
         // assertEq(recipient.balance, 1 ether);
         // assertEq(address(mixer).balance, 0);
     }

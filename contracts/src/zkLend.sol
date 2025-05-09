@@ -27,6 +27,8 @@ interface IVerifier {
 contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     IVerifier public immutable verifier;
     uint256[] public liquidated_array;
+    MockToken public lend_token;
+    MockToken public borrow_token;
 
     mapping(bytes32 => bool) public nullifierHashes;
     // we store all commitments just to prevent accidental deposits with the same commitment
@@ -43,11 +45,13 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     //  * @param _denomination transfer amount for each deposit
     //  * @param _merkleTreeHeight the height of deposits' Merkle Tree
     //  */
-    constructor(IVerifier _verifier, IHasher _hasher, uint32 _merkleTreeHeight)
+    constructor(IVerifier _verifier, IHasher _hasher, uint32 _merkleTreeHeight, MockToken _lend_token, MockToken _borrow_token)
         MerkleTreeWithHistory(_merkleTreeHeight, _hasher)
     {
         verifier = _verifier;
         liquidated_array = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+        lend_token = _lend_token;
+        borrow_token = _borrow_token;
     }
     function show_liquidated_array() public view returns (uint256[] memory){
         return liquidated_array;
@@ -69,7 +73,7 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     }
 
     function _processDeposit(uint256 _lend_amt) internal {
-        require(msg.value == _lend_amt, "Please lend the same number of ETH as you stated");
+        require(lend_token.transferFrom(msg.sender, address(this), _lend_amt), "Token lend failed");
     }
 
     /**
@@ -88,13 +92,12 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         address _recipient,
         uint256 _will_liq_price,
         uint256 _additional_borrow_amt,
-        uint256[] memory _liquidated_array,
-        MockToken _token
-
+        uint256[] memory _liquidated_array
     ) external payable nonReentrant {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
         require(_liquidated_array.length == liquidated_array.length, "Liquidated array length mismatch");
         require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
+        
          // TODO: Do verify logic
         // require(
         //     verifier.verifyProof(
@@ -115,20 +118,12 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         require(!commitments[_commitment], "The commitment has been submitted");
         uint32 insertedIndex = _insert(_commitment);
         commitments[_commitment] = true;
-        _processBorrow(_recipient, _additional_borrow_amt, _token);
+        _processBorrow(_recipient, _additional_borrow_amt);
         emit Borrow(_recipient, _nullifierHash, _commitment,insertedIndex, block.timestamp);
     }
 
-    /**
-     * @dev this function is defined in a child contract
-     */
-    function _processBorrow(address _recipient, uint256 _additional_borrow_amt, MockToken _token) internal {
-                // sanity checks
-        require(msg.value == 0, "Message value is supposed to be zero for ETH instance");
-
-        // (bool success,) = _recipient.call{value: _additional_borrow_amt}("");
-        // require(success, "borrow fund to _recipient did not go thru");
-        require(_token.transfer(_recipient, _additional_borrow_amt), "Token borrow failed");
+    function _processBorrow(address _recipient, uint256 _additional_borrow_amt) internal {
+        require(borrow_token.transfer(_recipient, _additional_borrow_amt), "Token borrow failed");
     }
 
     /**
