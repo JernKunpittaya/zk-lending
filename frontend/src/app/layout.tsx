@@ -2,11 +2,14 @@ import "@/styles/globals.css"
 
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import { headers } from "next/headers"
 import { GoogleAnalytics } from "@next/third-parties/google"
 import { Analytics } from "@vercel/analytics/next"
+import { cookieToInitialState } from "wagmi"
 
 import { env } from "@/env.mjs"
 import { siteConfig } from "@/config/site"
+import { config } from "@/config/wallet"
 import { cn } from "@/lib/utils"
 import { Toaster } from "@/components/ui/sonner"
 import { Providers } from "@/components/providers"
@@ -69,7 +72,11 @@ export const viewport: Viewport = {
   ],
 }
 
-export default function RootLayout({ children }: RootLayoutProps) {
+export default async function RootLayout({ children }: RootLayoutProps) {
+  const initialState = cookieToInitialState(
+    config,
+    (await headers()).get("cookie")
+  )
   return (
     <html lang="en" suppressHydrationWarning>
       <head />
@@ -85,7 +92,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           defaultTheme="dark"
           disableTransitionOnChange
         >
-          <Providers>{children}</Providers>
+          <Providers initialState={initialState}>{children}</Providers>
           <Toaster />
         </ThemeProvider>
       </body>

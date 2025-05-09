@@ -1,10 +1,12 @@
-import { ComponentProps } from "react"
+import { ComponentProps, useState } from "react"
 import _ from "lodash"
 
+import { currencies } from "@/config/currency"
 import { formatter } from "@/lib/formatter"
 import { cn } from "@/lib/utils"
+import { usePrices } from "@/hooks/use-prices"
+import { useContractState } from "@/hooks/use-state"
 
-import { Button } from "./ui/button"
 import {
   Table,
   TableBody,
@@ -14,41 +16,67 @@ import {
   TableRow,
 } from "./ui/table"
 
-const assets = [
-  {
-    name: "ETH",
-    icon: "https://icons.iconarchive.com/icons/cjdowner/cryptocurrency-flat/512/Ethereum-ETH-icon.png",
-    price: 1806.5,
-    deposits: 230.01,
-    borrowed: 78.89,
-    utilization: 0.3429,
-  },
-  {
-    name: "USDC",
-    icon: "https://assets.coingecko.com/coins/images/6319/small/usdc.png?1746042285",
-    price: 1.0001,
-    deposits: 45678.9,
-    borrowed: 23456.78,
-    utilization: 0.5135,
-  },
-]
-
 export function MarketSection({ className, ...props }: ComponentProps<"div">) {
+  const price = usePrices()
+  const state = useContractState()
+
+  const assets = [
+    {
+      name: currencies.weth.name,
+      symbol: currencies.weth.symbol,
+      icon: currencies.weth.icon,
+      price: price.data?.weth,
+      deposits: state.data ? Number(state.data?.weth_deposit_amount) : 0,
+      borrowed: state.data ? Number(state.data?.weth_borrow_amount) : 0,
+      utilization: state.data
+        ? Number(state.data?.weth_borrow_amount) /
+          Number(state.data?.weth_deposit_amount)
+        : 0,
+    },
+    {
+      name: currencies.usdc.name,
+      symbol: currencies.usdc.symbol,
+      icon: currencies.usdc.icon,
+      price: price.data?.usdc,
+      deposits: state.data ? Number(state.data?.usdc_deposit_amount) : 0,
+      borrowed: state.data ? Number(state.data?.usdc_borrow_amount) : 0,
+      utilization: state.data
+        ? Number(state.data?.usdc_borrow_amount) /
+          Number(state.data?.usdc_deposit_amount)
+        : NaN,
+    },
+  ]
+
+  const total = {
+    deposits: assets.reduce(
+      (acc, asset) => acc + asset.deposits * asset.price,
+      0
+    ),
+    borrowed: assets.reduce(
+      (acc, asset) => acc + asset.borrowed * asset.price,
+      0
+    ),
+    tvl: assets.reduce(
+      (acc, asset) => acc + (asset.deposits - asset.borrowed) * asset.price,
+      0
+    ),
+  }
+
   return (
     <div {...props} className={cn("border-border border pt-4", className)}>
       <h1 className="px-4 font-bold">Main Market</h1>
       <div className="grid grid-cols-3 gap-2 px-4 text-sm">
         <div>
           <div className="text-muted-foreground font-sans">Deposits</div>
-          <div className="font-bold">$12,493.32</div>
+          <div className="font-bold">{formatter.usd(total.deposits)}</div>
         </div>
         <div>
           <div className="text-muted-foreground font-sans">Borrowed</div>
-          <div className="font-bold">$12,493.32</div>
+          <div className="font-bold">{formatter.usd(total.borrowed)}</div>
         </div>
         <div>
           <div className="text-muted-foreground font-sans">TVL</div>
-          <div className="font-bold">$12,493.32</div>
+          <div className="font-bold">{formatter.usd(total.tvl)}</div>
         </div>
       </div>
       <Table className="border-t">
@@ -92,7 +120,11 @@ export function MarketSection({ className, ...props }: ComponentProps<"div">) {
                   {formatter.usd(asset.price * asset.borrowed)}
                 </div>
               </TableCell>
-              <TableCell>{formatter.percent(asset.utilization)}</TableCell>
+              <TableCell>
+                {_.isNaN(asset.utilization)
+                  ? "-"
+                  : formatter.percent(asset.utilization)}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

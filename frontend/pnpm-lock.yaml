@@ -38,6 +38,9 @@ importers:
       '@vercel/analytics':
         specifier: ^1.5.0
         version: 1.5.0(next@15.2.4(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react@19.1.0)
+      bignumber.js:
+        specifier: ^9.3.0
+        version: 9.3.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1

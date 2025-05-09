@@ -1,9 +1,9 @@
 import { env } from "@/env.mjs"
 
 export const siteConfig = {
-  name: "Next Template",
-  author: "Author",
-  description: "Description",
+  name: "Noiri",
+  author: "Jernkul, Yoyoismee, Yoisha",
+  description: "Noiri - ZK Lending Protocol on Steriod",
   keywords: [],
   url: {
     base: env.NEXT_PUBLIC_APP_URL,

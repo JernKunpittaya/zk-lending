@@ -1,4 +1,5 @@
-import { parseAbi } from "viem"
+import { createPublicClient, http, parseAbi } from "viem"
+import { sepolia } from "viem/chains"
 
 export const tokenAbi = parseAbi([
   "function transfer(address to, uint256 amount) returns (bool)",
@@ -30,4 +31,15 @@ export const contracts = {
   weth: "0x00ea46082024f5b0c8c3e120d6442f92fa1c7f99",
   verifier: "0xdf003194e800e5f29dcf65d1a5e4fbb8e5f01bdc",
   zklend: "0xe30b1924b952b3013ca62417c8bb3ea3e79f5a27",
-}
+  explorer: "https://sepolia.etherscan.io",
+} as const
+
+export const client = createPublicClient({
+  transport: http(sepolia.rpcUrls.default.http[0], {
+    batch: true,
+  }),
+  chain: sepolia,
+  batch: {
+    multicall: true,
+  },
+})
