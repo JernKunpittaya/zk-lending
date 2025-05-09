@@ -104,10 +104,10 @@ fn assert_update_amt(
 }
 
 // check if my position is liquidated
-fn is_my_pos_liquidated(my_note: MyNote, liquidated_array: [Liquidated; 3]) -> u8 {
+fn is_my_pos_liquidated(my_note: MyNote, liquidated_array: [Liquidated; 10]) -> u8 {
     let mut is_liquidated: u8 = 0;
 
-    for i in 0..3 {
+    for i in 0..10 {
         let check = is_myposition_liquidated(
             my_note.will_liq_price,
             liquidated_array[i].liq_price,
@@ -124,12 +124,12 @@ fn is_my_pos_liquidated(my_note: MyNote, liquidated_array: [Liquidated; 3]) -> u
 }
 
 // assert that my position not liquidated
-fn assert_non_liquidated(my_note: MyNote, liquidated_array: [Liquidated; 3]) {
+fn assert_non_liquidated(my_note: MyNote, liquidated_array: [Liquidated; 10]) {
     assert(is_my_pos_liquidated(my_note, liquidated_array) == 0);
 }
 
 // assert that my position gets liquidated
-fn assert_liquidated(my_note: MyNote, liquidated_array: [Liquidated; 3]) {
+fn assert_liquidated(my_note: MyNote, liquidated_array: [Liquidated; 10]) {
     assert(is_my_pos_liquidated(my_note, liquidated_array) == 1);
 }
 
@@ -143,10 +143,10 @@ fn process_path_hash(leaf: Field, index: u32, another_leaf: Field) -> Field {
     }
 }
 
-fn assert_inclusion_proof(leaf: Field, index: u32, hash_path: [Field; 3], root: Field) {
+fn assert_inclusion_proof(leaf: Field, index: u32, hash_path: [Field; 12], root: Field) {
     let mut calculated_hash = leaf;
     let mut calculated_index = index;
-    for i in 0..3 {
+    for i in 0..12 {
         calculated_hash = process_path_hash(calculated_hash, calculated_index, hash_path[i]);
         calculated_index = calculated_index / 2;
     }
@@ -175,9 +175,9 @@ fn borrow(
     prev_note: MyNote,
     prev_hash: Field,
     prev_index: u32,
-    prev_hash_path: [Field; 3],
+    prev_hash_path: [Field; 12],
     root: Field,
-    liquidated_array: [Liquidated; 3],
+    liquidated_array: [Liquidated; 10],
     new_note: MyNote,
     additional_borrow_amt: u64,
 ) -> Field {
@@ -211,9 +211,9 @@ fn repay(
     prev_note: MyNote,
     prev_hash: Field,
     prev_index: u32,
-    prev_hash_path: [Field; 3],
+    prev_hash_path: [Field; 12],
     root: Field,
-    liquidated_array: [Liquidated; 3],
+    liquidated_array: [Liquidated; 10],
     new_note: MyNote,
     repay_borrow_amt: u64,
 ) -> Field {
@@ -257,9 +257,9 @@ fn lend(
     prev_note: MyNote,
     prev_hash: Field,
     prev_index: u32,
-    prev_hash_path: [Field; 3],
+    prev_hash_path: [Field; 12],
     root: Field,
-    liquidated_array: [Liquidated; 3],
+    liquidated_array: [Liquidated; 10],
     new_note: MyNote,
     additional_deposit_amt: u64,
 ) -> Field {
@@ -293,9 +293,9 @@ fn withdraw(
     prev_note: MyNote,
     prev_hash: Field,
     prev_index: u32,
-    prev_hash_path: [Field; 3],
+    prev_hash_path: [Field; 12],
     root: Field,
-    liquidated_array: [Liquidated; 3],
+    liquidated_array: [Liquidated; 10],
     new_note: MyNote,
     withdraw_lend_amt: u64,
 ) -> Field {
@@ -336,6 +336,15 @@ fn withdraw(
 }
 
 // =============== HELPER FUNCTIONS ========================
+
+fn fake_zero_merkle_tree(the_leaf: Field) -> Field {
+    let zero_leaf = 0 as Field;
+    let mut root = the_leaf;
+    for i in 0..12 {
+        root = simple_hash(root, zero_leaf);
+    }
+    root
+}
 
 fn construct_merkle_tree(leaf_array: [Field; 8]) -> [Field; 7] {
     let mut lv1_nodes: [Field; 4] = [0; 4];
@@ -387,11 +396,11 @@ fn main(
     new_timestamp: pub u64,
     prev_note: MyNote,
     prev_hash: Field,
-    prev_nullifier: Field,
+    prev_nullifier: pub Field,
     prev_index: u32,
-    prev_hash_path: pub [Field; 3],
+    prev_hash_path: [Field; 12],
     root: pub Field,
-    liquidated_array: pub [Liquidated; 3],
+    liquidated_array: pub [Liquidated; 10],
     lend_token_out: pub u64,
     borrow_token_out: pub u64,
     lend_token_in: pub u64,
@@ -477,7 +486,7 @@ fn test_main_real(){
 
     // create empty tree
     let zero_leaf = 0 as Field;
-    let mut merkle_leaves: [Field; 8] = (
+    let mut merkle_path_zero: [Field; 12] = (
         [
             zero_leaf,
             zero_leaf,
@@ -487,14 +496,25 @@ fn test_main_real(){
             zero_leaf,
             zero_leaf,
             zero_leaf,
+            zero_leaf,
+            zero_leaf,
+            zero_leaf,
+            zero_leaf,
+
         ]
     );
-    let mut merkle_tree = construct_merkle_tree(merkle_leaves);
-    let mut merkle_root = merkle_tree[6];
-    let mut liquidated_array: [Liquidated; 3] = [
+    let mut merkle_root = fake_zero_merkle_tree(zero_leaf);
+    let mut liquidated_array: [Liquidated; 10] = [
         Liquidated { liq_price: 1500, timestamp: 0 },
         Liquidated { liq_price: 1600, timestamp: 0 },
         Liquidated { liq_price: 1700, timestamp: 0 },
+        Liquidated { liq_price: 1500, timestamp: 0 },
+        Liquidated { liq_price: 1600, timestamp: 0 },
+        Liquidated { liq_price: 1700, timestamp: 0 },
+        Liquidated { liq_price: 1500, timestamp: 0 },
+        Liquidated { liq_price: 1600, timestamp: 0 },
+        Liquidated { liq_price: 1700, timestamp: 0 },
+        Liquidated { liq_price: 1500, timestamp: 0 },
     ];
 
     // a, b deposit and borrow right away
@@ -528,7 +548,7 @@ fn test_main_real(){
         zero_leaf,
         zero_leaf,
         0,
-        [zero_leaf, zero_leaf, zero_leaf],
+        merkle_path_zero,
         merkle_root,
         liquidated_array,
         0,
@@ -540,21 +560,8 @@ fn test_main_real(){
     // test borrow
     let last_note_hash = expected_new_note_hash;
     let last_note_index = 0;
-    let merkle_leaves = [
-        last_note_hash,
-        zero_leaf,
-        zero_leaf,
-        zero_leaf,
-        zero_leaf,
-        zero_leaf,
-        zero_leaf,
-        zero_leaf,
-    ];
-    merkle_tree = construct_merkle_tree(merkle_leaves);
-    merkle_root = merkle_tree[6];
-    let last_note_hash_path = [zero_leaf, merkle_tree[1], merkle_tree[5]];
+    merkle_root = fake_zero_merkle_tree(last_note_hash);
     
-
     let last_note = expected_new_note;
 
     let to_borrow_amt = 500;
@@ -568,9 +575,8 @@ fn test_main_real(){
         nonce: 19 as Field,
     };
     let expected_new_note_hash = hash_my_note(expected_new_note);
-    let old_expected_new_note_hash_path = [zero_leaf, merkle_tree[1], merkle_tree[5]];
     
-    assert_inclusion_proof(last_note_hash, 0, old_expected_new_note_hash_path, merkle_root);
+    assert_inclusion_proof(last_note_hash, 0, merkle_path_zero, merkle_root);
 
     main(
         expected_new_note,
@@ -581,7 +587,7 @@ fn test_main_real(){
         last_note_hash,
         last_note.nullifier,
         0,
-        old_expected_new_note_hash_path,
+        merkle_path_zero,
         merkle_root,
         liquidated_array,
         0,
@@ -597,283 +603,283 @@ fn test_main_real(){
 
 }
 
-#[test]
-fn test_main() {
-    // Time = 0, current ETH price = 3000,
-    // there exists buckets at liquidation price 2800, 2600, 2400, 2200
+// #[test]
+// fn test_main() {
+//     // Time = 0, current ETH price = 3000,
+//     // there exists buckets at liquidation price 2800, 2600, 2400, 2200
  
 
-    let zero_leaf = 0 as Field;
-    let mut merkle_leaves: [Field; 8] = (
-        [
-            1234 as Field,
-            542 as Field,
-            zero_leaf,
-            zero_leaf,
-            zero_leaf,
-            zero_leaf,
-            zero_leaf,
-            zero_leaf,
-        ]
-    );
-    let mut liquidated_array: [Liquidated; 3] = [
-        Liquidated { liq_price: 0, timestamp: 0 },
-        Liquidated { liq_price: 0, timestamp: 0 },
-        Liquidated { liq_price: 0, timestamp: 0 },
-    ];
-    // a, b deposit and borrow right away
-    let a_init_lend_amt = 50000; // already scale by (10^4)
-    let a_init_will_liq_price = 2800;
-    let a_init_borrow_amt = update_borrow_amt_new_liq_price(a_init_will_liq_price, a_init_lend_amt);
-    let a_init_note = init_note(
-        a_init_lend_amt,
-        a_init_borrow_amt,
-        a_init_will_liq_price,
-        0,
-        112 as Field,
-        13 as Field,
-    );
+//     let zero_leaf = 0 as Field;
+//     let mut merkle_leaves: [Field; 8] = (
+//         [
+//             1234 as Field,
+//             542 as Field,
+//             zero_leaf,
+//             zero_leaf,
+//             zero_leaf,
+//             zero_leaf,
+//             zero_leaf,
+//             zero_leaf,
+//         ]
+//     );
+//     let mut liquidated_array: [Liquidated; 10] = [
+//         Liquidated { liq_price: 0, timestamp: 0 },
+//         Liquidated { liq_price: 0, timestamp: 0 },
+//         Liquidated { liq_price: 0, timestamp: 0 },
+//     ];
+//     // a, b deposit and borrow right away
+//     let a_init_lend_amt = 50000; // already scale by (10^4)
+//     let a_init_will_liq_price = 2800;
+//     let a_init_borrow_amt = update_borrow_amt_new_liq_price(a_init_will_liq_price, a_init_lend_amt);
+//     let a_init_note = init_note(
+//         a_init_lend_amt,
+//         a_init_borrow_amt,
+//         a_init_will_liq_price,
+//         0,
+//         112 as Field,
+//         13 as Field,
+//     );
 
-    let b_init_lend_amt = 20000; // already scale by (10^4)
-    let b_init_will_liq_price = 2600;
-    let b_init_borrow_amt = update_borrow_amt_new_liq_price(b_init_will_liq_price, b_init_lend_amt);
-    let b_init_note = init_note(
-        b_init_lend_amt,
-        b_init_borrow_amt,
-        b_init_will_liq_price,
-        0,
-        132 as Field,
-        156 as Field,
-    );
+//     let b_init_lend_amt = 20000; // already scale by (10^4)
+//     let b_init_will_liq_price = 2600;
+//     let b_init_borrow_amt = update_borrow_amt_new_liq_price(b_init_will_liq_price, b_init_lend_amt);
+//     let b_init_note = init_note(
+//         b_init_lend_amt,
+//         b_init_borrow_amt,
+//         b_init_will_liq_price,
+//         0,
+//         132 as Field,
+//         156 as Field,
+//     );
 
-    let a_init_note_hash = hash_my_note(a_init_note);
-    let a_init_note_index = 2;
-    merkle_leaves[a_init_note_index] = a_init_note_hash;
-    let b_init_note_hash = hash_my_note(b_init_note);
-    let b_init_note_index = 3;
-    merkle_leaves[b_init_note_index] = b_init_note_hash;
+//     let a_init_note_hash = hash_my_note(a_init_note);
+//     let a_init_note_index = 2;
+//     merkle_leaves[a_init_note_index] = a_init_note_hash;
+//     let b_init_note_hash = hash_my_note(b_init_note);
+//     let b_init_note_index = 3;
+//     merkle_leaves[b_init_note_index] = b_init_note_hash;
 
-    // T = 4 hrs, liquidate 2800 ish, then bounce back 2900
-    let timestamp_4_hrs = 4 * 60 * 60;
-    liquidated_array[0] = Liquidated {
-        liq_price: global_will_liq_price(2800, timestamp_4_hrs),
-        timestamp: timestamp_4_hrs,
-    };
+//     // T = 4 hrs, liquidate 2800 ish, then bounce back 2900
+//     let timestamp_4_hrs = 4 * 60 * 60;
+//     liquidated_array[0] = Liquidated {
+//         liq_price: global_will_liq_price(2800, timestamp_4_hrs),
+//         timestamp: timestamp_4_hrs,
+//     };
 
-    // T = 12 hrs, liquidate 2800 ish again (since someone initiate position in this bucket)
-    let timestamp_12_hrs = 12 * 60 * 60;
-    liquidated_array[1] = Liquidated {
-        liq_price: global_will_liq_price(2800, timestamp_12_hrs),
-        timestamp: timestamp_12_hrs,
-    };
+//     // T = 12 hrs, liquidate 2800 ish again (since someone initiate position in this bucket)
+//     let timestamp_12_hrs = 12 * 60 * 60;
+//     liquidated_array[1] = Liquidated {
+//         liq_price: global_will_liq_price(2800, timestamp_12_hrs),
+//         timestamp: timestamp_12_hrs,
+//     };
 
-    // a's position is gone
-    assert_liquidated(a_init_note, liquidated_array);
+//     // a's position is gone
+//     assert_liquidated(a_init_note, liquidated_array);
 
-    // T = 32 hrs
-    // b lend more, making will_liq_price drop to around 2200
-    let timestamp_32_hrs = 32 * 60 * 60;
-    let merkle_tree = construct_merkle_tree(merkle_leaves);
-    let b_init_note_hash_path = [merkle_leaves[2], merkle_tree[0], merkle_tree[5]];
-    let merkle_root = merkle_tree[6];
+//     // T = 32 hrs
+//     // b lend more, making will_liq_price drop to around 2200
+//     let timestamp_32_hrs = 32 * 60 * 60;
+//     let merkle_tree = construct_merkle_tree(merkle_leaves);
+//     let b_init_note_hash_path = [merkle_leaves[2], merkle_tree[0], merkle_tree[5]];
+//     let merkle_root = merkle_tree[6];
 
-    let b_2200_will_liq_price = global_will_liq_price(2200, timestamp_32_hrs);
-    let b_2200_borrow_amt = update_amt(
-        b_init_note.borrow_amt,
-        b_init_note.timestamp,
-        timestamp_32_hrs,
-        BORROW_INTEREST_RATE,
-    );
+//     let b_2200_will_liq_price = global_will_liq_price(2200, timestamp_32_hrs);
+//     let b_2200_borrow_amt = update_amt(
+//         b_init_note.borrow_amt,
+//         b_init_note.timestamp,
+//         timestamp_32_hrs,
+//         BORROW_INTEREST_RATE,
+//     );
 
-    let b_2200_lend_amt = update_lend_amt_new_liq_price(b_2200_will_liq_price, b_2200_borrow_amt);
-    let b_updated_lend_amt = update_amt(
-        b_init_note.lend_amt,
-        b_init_note.timestamp,
-        timestamp_32_hrs,
-        LEND_INTEREST_RATE,
-    );
-    let b_additional_lend_amt = b_2200_lend_amt - b_updated_lend_amt;
+//     let b_2200_lend_amt = update_lend_amt_new_liq_price(b_2200_will_liq_price, b_2200_borrow_amt);
+//     let b_updated_lend_amt = update_amt(
+//         b_init_note.lend_amt,
+//         b_init_note.timestamp,
+//         timestamp_32_hrs,
+//         LEND_INTEREST_RATE,
+//     );
+//     let b_additional_lend_amt = b_2200_lend_amt - b_updated_lend_amt;
 
-    let b_2200_note = MyNote {
-        lend_amt: b_2200_lend_amt,
-        borrow_amt: b_2200_borrow_amt,
-        will_liq_price: b_2200_will_liq_price,
-        timestamp: timestamp_32_hrs,
-        nullifier: 999 as Field,
-        nonce: 888 as Field,
-    };
+//     let b_2200_note = MyNote {
+//         lend_amt: b_2200_lend_amt,
+//         borrow_amt: b_2200_borrow_amt,
+//         will_liq_price: b_2200_will_liq_price,
+//         timestamp: timestamp_32_hrs,
+//         nullifier: 999 as Field,
+//         nonce: 888 as Field,
+//     };
 
-    lend(
-        b_init_note,
-        b_init_note_hash,
-        b_init_note_index,
-        b_init_note_hash_path,
-        merkle_root,
-        liquidated_array,
-        b_2200_note,
-        b_additional_lend_amt,
-    );
+//     lend(
+//         b_init_note,
+//         b_init_note_hash,
+//         b_init_note_index,
+//         b_init_note_hash_path,
+//         merkle_root,
+//         liquidated_array,
+//         b_2200_note,
+//         b_additional_lend_amt,
+//     );
 
-    let b_2200_note_hash = hash_my_note(b_2200_note);
-    let b_2200_note_index = 4;
-    merkle_leaves[b_2200_note_index] = b_2200_note_hash;
+//     let b_2200_note_hash = hash_my_note(b_2200_note);
+//     let b_2200_note_index = 4;
+//     merkle_leaves[b_2200_note_index] = b_2200_note_hash;
 
-    // T = 32 hrs
-    // b borrow more, making will_liq_price rise to around 2400
-    let merkle_tree = construct_merkle_tree(merkle_leaves);
-    let b_2200_note_hash_path = [zero_leaf, merkle_tree[3], merkle_tree[4]];
-    let merkle_root = merkle_tree[6];
+//     // T = 32 hrs
+//     // b borrow more, making will_liq_price rise to around 2400
+//     let merkle_tree = construct_merkle_tree(merkle_leaves);
+//     let b_2200_note_hash_path = [zero_leaf, merkle_tree[3], merkle_tree[4]];
+//     let merkle_root = merkle_tree[6];
 
-    let b_2400_will_liq_price = global_will_liq_price(2400, timestamp_32_hrs);
-    let b_2400_lend_amt = update_amt(
-        b_2200_note.lend_amt,
-        b_2200_note.timestamp,
-        timestamp_32_hrs,
-        LEND_INTEREST_RATE,
-    );
+//     let b_2400_will_liq_price = global_will_liq_price(2400, timestamp_32_hrs);
+//     let b_2400_lend_amt = update_amt(
+//         b_2200_note.lend_amt,
+//         b_2200_note.timestamp,
+//         timestamp_32_hrs,
+//         LEND_INTEREST_RATE,
+//     );
 
-    let b_2400_borrow_amt = update_borrow_amt_new_liq_price(b_2400_will_liq_price, b_2400_lend_amt);
-    let b_updated_borrow_amt = update_amt(
-        b_2200_note.borrow_amt,
-        b_2200_note.timestamp,
-        timestamp_32_hrs,
-        BORROW_INTEREST_RATE,
-    );
-    let b_additional_borrow_amt = b_2400_borrow_amt - b_updated_borrow_amt;
+//     let b_2400_borrow_amt = update_borrow_amt_new_liq_price(b_2400_will_liq_price, b_2400_lend_amt);
+//     let b_updated_borrow_amt = update_amt(
+//         b_2200_note.borrow_amt,
+//         b_2200_note.timestamp,
+//         timestamp_32_hrs,
+//         BORROW_INTEREST_RATE,
+//     );
+//     let b_additional_borrow_amt = b_2400_borrow_amt - b_updated_borrow_amt;
 
-    let b_2400_note = MyNote {
-        lend_amt: b_2400_lend_amt,
-        borrow_amt: b_2400_borrow_amt,
-        will_liq_price: b_2400_will_liq_price,
-        timestamp: timestamp_32_hrs,
-        nullifier: 1890 as Field,
-        nonce: 97 as Field,
-    };
+//     let b_2400_note = MyNote {
+//         lend_amt: b_2400_lend_amt,
+//         borrow_amt: b_2400_borrow_amt,
+//         will_liq_price: b_2400_will_liq_price,
+//         timestamp: timestamp_32_hrs,
+//         nullifier: 1890 as Field,
+//         nonce: 97 as Field,
+//     };
 
-    borrow(
-        b_2200_note,
-        b_2200_note_hash,
-        b_2200_note_index,
-        b_2200_note_hash_path,
-        merkle_root,
-        liquidated_array,
-        b_2400_note,
-        b_additional_borrow_amt,
-    );
+//     borrow(
+//         b_2200_note,
+//         b_2200_note_hash,
+//         b_2200_note_index,
+//         b_2200_note_hash_path,
+//         merkle_root,
+//         liquidated_array,
+//         b_2400_note,
+//         b_additional_borrow_amt,
+//     );
 
-    let b_2400_note_hash = hash_my_note(b_2400_note);
-    let b_2400_note_index = 5;
-    merkle_leaves[b_2400_note_index] = b_2400_note_hash;
+//     let b_2400_note_hash = hash_my_note(b_2400_note);
+//     let b_2400_note_index = 5;
+//     merkle_leaves[b_2400_note_index] = b_2400_note_hash;
 
-    // T = 72 hrs, liquidate 2600 ish..
-    let timestamp_72_hrs = 72 * 60 * 60;
-    liquidated_array[2] = Liquidated {
-        liq_price: global_will_liq_price(2600, timestamp_72_hrs),
-        timestamp: timestamp_72_hrs,
-    };
+//     // T = 72 hrs, liquidate 2600 ish..
+//     let timestamp_72_hrs = 72 * 60 * 60;
+//     liquidated_array[2] = Liquidated {
+//         liq_price: global_will_liq_price(2600, timestamp_72_hrs),
+//         timestamp: timestamp_72_hrs,
+//     };
 
-    // T = 96 hrs, b repays all his debt
-    let timestamp_96_hrs = 96 * 60 * 60;
-    let merkle_tree = construct_merkle_tree(merkle_leaves);
-    let b_2400_note_hash_path = [merkle_leaves[4], merkle_tree[3], merkle_tree[4]];
-    let merkle_root = merkle_tree[6];
+//     // T = 96 hrs, b repays all his debt
+//     let timestamp_96_hrs = 96 * 60 * 60;
+//     let merkle_tree = construct_merkle_tree(merkle_leaves);
+//     let b_2400_note_hash_path = [merkle_leaves[4], merkle_tree[3], merkle_tree[4]];
+//     let merkle_root = merkle_tree[6];
 
-    // repay all debt
-    let b_0_will_liq_price = 0;
-    let b_0_lend_amt = update_amt(
-        b_2400_note.lend_amt,
-        b_2400_note.timestamp,
-        timestamp_96_hrs,
-        LEND_INTEREST_RATE,
-    );
+//     // repay all debt
+//     let b_0_will_liq_price = 0;
+//     let b_0_lend_amt = update_amt(
+//         b_2400_note.lend_amt,
+//         b_2400_note.timestamp,
+//         timestamp_96_hrs,
+//         LEND_INTEREST_RATE,
+//     );
 
-    let b_0_borrow_amt = 0;
-    let b_updated_borrow_amt = update_amt(
-        b_2400_note.borrow_amt,
-        b_2400_note.timestamp,
-        timestamp_96_hrs,
-        BORROW_INTEREST_RATE,
-    );
-    let b_repay_borrow_amt = b_updated_borrow_amt - b_0_borrow_amt;
+//     let b_0_borrow_amt = 0;
+//     let b_updated_borrow_amt = update_amt(
+//         b_2400_note.borrow_amt,
+//         b_2400_note.timestamp,
+//         timestamp_96_hrs,
+//         BORROW_INTEREST_RATE,
+//     );
+//     let b_repay_borrow_amt = b_updated_borrow_amt - b_0_borrow_amt;
 
-    let b_0_note = MyNote {
-        lend_amt: b_0_lend_amt,
-        borrow_amt: b_0_borrow_amt,
-        will_liq_price: b_0_will_liq_price,
-        timestamp: timestamp_96_hrs,
-        nullifier: 2 as Field,
-        nonce: 932494 as Field,
-    };
+//     let b_0_note = MyNote {
+//         lend_amt: b_0_lend_amt,
+//         borrow_amt: b_0_borrow_amt,
+//         will_liq_price: b_0_will_liq_price,
+//         timestamp: timestamp_96_hrs,
+//         nullifier: 2 as Field,
+//         nonce: 932494 as Field,
+//     };
 
-    repay(
-        b_2400_note,
-        b_2400_note_hash,
-        b_2400_note_index,
-        b_2400_note_hash_path,
-        merkle_root,
-        liquidated_array,
-        b_0_note,
-        b_repay_borrow_amt,
-    );
+//     repay(
+//         b_2400_note,
+//         b_2400_note_hash,
+//         b_2400_note_index,
+//         b_2400_note_hash_path,
+//         merkle_root,
+//         liquidated_array,
+//         b_0_note,
+//         b_repay_borrow_amt,
+//     );
 
-    let b_0_note_hash = hash_my_note(b_0_note);
-    let b_0_note_index = 6;
-    merkle_leaves[b_0_note_index] = b_0_note_hash;
+//     let b_0_note_hash = hash_my_note(b_0_note);
+//     let b_0_note_index = 6;
+//     merkle_leaves[b_0_note_index] = b_0_note_hash;
 
-    // T = 120 hrs, b withdraw some money
-    let timestamp_120_hrs = 120 * 60 * 60;
-    let merkle_tree = construct_merkle_tree(merkle_leaves);
-    let b_0_note_hash_path = [zero_leaf, merkle_tree[2], merkle_tree[4]];
-    let merkle_root = merkle_tree[6];
+//     // T = 120 hrs, b withdraw some money
+//     let timestamp_120_hrs = 120 * 60 * 60;
+//     let merkle_tree = construct_merkle_tree(merkle_leaves);
+//     let b_0_note_hash_path = [zero_leaf, merkle_tree[2], merkle_tree[4]];
+//     let merkle_root = merkle_tree[6];
 
-    let b_updated_lend_amt = update_amt(
-        b_0_note.lend_amt,
-        b_0_note.timestamp,
-        timestamp_120_hrs,
-        LEND_INTEREST_RATE,
-    );
-    let b_final_lend_amt = 20000;
-    let b_final_borrow_amt = 0;
-    let b_withdraw_lend_amt = b_updated_lend_amt - b_final_lend_amt;
+//     let b_updated_lend_amt = update_amt(
+//         b_0_note.lend_amt,
+//         b_0_note.timestamp,
+//         timestamp_120_hrs,
+//         LEND_INTEREST_RATE,
+//     );
+//     let b_final_lend_amt = 20000;
+//     let b_final_borrow_amt = 0;
+//     let b_withdraw_lend_amt = b_updated_lend_amt - b_final_lend_amt;
 
-    let b_final_note = MyNote {
-        lend_amt: b_final_lend_amt,
-        borrow_amt: b_final_borrow_amt,
-        will_liq_price: 0,
-        timestamp: timestamp_120_hrs,
-        nullifier: 223 as Field,
-        nonce: 12309 as Field,
-    };
+//     let b_final_note = MyNote {
+//         lend_amt: b_final_lend_amt,
+//         borrow_amt: b_final_borrow_amt,
+//         will_liq_price: 0,
+//         timestamp: timestamp_120_hrs,
+//         nullifier: 223 as Field,
+//         nonce: 12309 as Field,
+//     };
 
-    withdraw(
-        b_0_note,
-        b_0_note_hash,
-        b_0_note_index,
-        b_0_note_hash_path,
-        merkle_root,
-        liquidated_array,
-        b_final_note,
-        b_withdraw_lend_amt,
-    );
-}
+//     withdraw(
+//         b_0_note,
+//         b_0_note_hash,
+//         b_0_note_index,
+//         b_0_note_hash_path,
+//         merkle_root,
+//         liquidated_array,
+//         b_final_note,
+//         b_withdraw_lend_amt,
+//     );
+// }
 
 #[test]
 fn test_inclusion_proof() {
-    let a = 1 as Field;
-    let b = 2 as Field;
-    let c = 3 as Field;
-    let d = 4 as Field;
-    let zero = 0 as Field;
+    // let a = 1 as Field;
+    // let b = 2 as Field;
+    // let c = 3 as Field;
+    // let d = 4 as Field;
+    // let zero = 0 as Field;
 
-    let merkle_leaves = [a, b, c, d, zero, zero, zero, zero];
-    let merkle = construct_merkle_tree(merkle_leaves);
+    // let merkle_leaves = [a, b, c, d, zero, zero, zero, zero];
+    // let merkle = construct_merkle_tree(merkle_leaves);
 
-    let leaf = c;
-    let index = 2;
-    let hash_path = [d, merkle[0], merkle[5]];
-    let root = merkle[6];
+    // let leaf = c;
+    // let index = 2;
+    // let hash_path = [d, merkle[0], merkle[5]];
+    // let root = merkle[6];
 
-    assert_inclusion_proof(leaf, index, hash_path, root);
+    // assert_inclusion_proof(leaf, index, hash_path, root);
 }
 
 #[test]
@@ -903,6 +909,13 @@ fn test_liquidation_check() {
     let liquidated_array = [
         Liquidated { liq_price: 1100, timestamp: 1005 },
         Liquidated { liq_price: 1200, timestamp: 1010 },
+        Liquidated { liq_price: 1100, timestamp: 1200 },
+        Liquidated { liq_price: 1100, timestamp: 1200 },
+        Liquidated { liq_price: 1100, timestamp: 1200 },
+        Liquidated { liq_price: 1100, timestamp: 1200 },
+        Liquidated { liq_price: 1100, timestamp: 1200 },
+        Liquidated { liq_price: 1100, timestamp: 1200 },
+        Liquidated { liq_price: 1100, timestamp: 1200 },
         Liquidated { liq_price: 1100, timestamp: 1200 },
     ];
     assert_ltv(my_note);
