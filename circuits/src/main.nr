@@ -383,7 +383,7 @@ fn global_will_liq_price(initial_will_liq_price: u64, timestamp: u64) -> u64 {
 // 3. lend, borrow, repay, withdraw - attempt to update the note and check aginst constraints
 fn main(
     new_note: MyNote,
-    new_note_hash: Field,
+    new_note_hash: pub Field,
     new_will_liq_price: pub u64,
     new_timestamp: pub u64,
     prev_note: MyNote,
@@ -398,6 +398,7 @@ fn main(
     borrow_token_in: pub u64,
 ) {
     // return the new note hash
+    assert(new_will_liq_price == new_note.will_liq_price);
 
     // assert that token in and out are mutually exclusive
     assert(lend_token_in * lend_token_out == 0);
