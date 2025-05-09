@@ -21,6 +21,7 @@ export interface Position {
 export interface PositionStore {
   positions: Position[]
   addPosition: (position: Position) => void
+  replacePosition: (id: string, position: Position) => void
 }
 
 export const usePositionStore = create<PositionStore>()(
@@ -29,7 +30,12 @@ export const usePositionStore = create<PositionStore>()(
       positions: [],
       addPosition: (position: Position) =>
         set({ positions: [...get().positions, position] }),
+      replacePosition: (id: string, position: Position) =>
+        set(({ positions }) => ({
+          positions: positions.map((p) => (p.id === id ? position : p)),
+        })),
     }),
+
     {
       name: `position-storage-${contracts.zklend}-1.0`,
     }

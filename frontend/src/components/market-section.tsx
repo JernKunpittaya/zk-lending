@@ -26,8 +26,14 @@ export function MarketSection({ className, ...props }: ComponentProps<"div">) {
       symbol: currencies.weth.symbol,
       icon: currencies.weth.icon,
       price: price.data?.weth || 0,
-      deposits: state.data ? Number(state.data?.weth_deposit_amount) : 0,
-      borrowed: state.data ? Number(state.data?.weth_borrow_amount) : 0,
+      deposits:
+        state.data && state.data?.weth_deposit_amount
+          ? Number(state.data?.weth_deposit_amount) / 1e6
+          : 0,
+      borrowed:
+        state.data && state.data?.weth_borrow_amount
+          ? Number(state.data?.weth_borrow_amount) / 1e6
+          : 0,
       utilization: state.data
         ? Number(state.data?.weth_borrow_amount) /
           Number(state.data?.weth_deposit_amount)
@@ -38,12 +44,18 @@ export function MarketSection({ className, ...props }: ComponentProps<"div">) {
       symbol: currencies.usdc.symbol,
       icon: currencies.usdc.icon,
       price: price.data?.usdc || 0,
-      deposits: state.data ? Number(state.data?.usdc_deposit_amount) : 0,
-      borrowed: state.data ? Number(state.data?.usdc_borrow_amount) : 0,
+      deposits:
+        state.data && state.data?.usdc_deposit_amount
+          ? Number(state.data?.usdc_deposit_amount) / 1e6
+          : 0,
+      borrowed:
+        state.data && state.data?.usdc_borrow_amount
+          ? Number(state.data?.usdc_borrow_amount) / 1e6
+          : 0,
       utilization: state.data
         ? Number(state.data?.usdc_borrow_amount) /
           Number(state.data?.usdc_deposit_amount)
-        : NaN,
+        : 0,
     },
   ]
 

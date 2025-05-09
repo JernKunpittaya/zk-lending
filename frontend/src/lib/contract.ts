@@ -28,10 +28,10 @@ export const zkLendAbi = parseAbi([
 ])
 
 export const contracts = {
-  usdc: "0x0729b1C8aE8AbBF95dAB6F0835CF9962C29c7344",
-  weth: "0x9c56316255cff57cbeb8a0418c8f5d4f9523588f",
-  verifier: "0x40C106c9F4B74b16a5829B6014b0d99896eDE503",
-  zklend: "0xda574377faFB3775e8A1bC547a9BA387f1c749C5",
+  usdc: "0x3770952b41b1346215F0b8733760ce222b28506c",
+  weth: "0x96705944c7e4e6325D4a2ee7e2a7b586EB1490F1",
+  verifier: "0xC2d3d1e6649f8e4697E2b339af56DA5ADd2af186",
+  zklend: "0xcB9d899d7f14Dca9EF05D9DaA5D01DaFE6B5BD24",
   explorer: "https://sepolia.etherscan.io",
 } as const
 

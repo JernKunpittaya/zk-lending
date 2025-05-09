@@ -84,11 +84,11 @@ export const useProvePosition = () => {
       willLiqPrice: bigint
     }) => {
       const leafs = await getLeafs()
-      const tree = new MerkleTree(12, leafs, {
+      const tree = new MerkleTree(12, [], {
         hashFunction: (left, right) => toHex(poseidon2([left, right])),
-        zeroElement:
-          "0x2fe54c60d3acabf3343a35b6eba15db4821b340f76e741e2249685ed4899af6c",
+        zeroElement: "0x00",
       })
+      tree.bulkInsert(leafs)
       const { Noir, UltraHonkBackend, circuit } = await initProver()
       const noir = new Noir(circuit as any)
       const backend = new UltraHonkBackend(circuit.bytecode)
@@ -104,14 +104,15 @@ export const useProvePosition = () => {
         nullifier: oldPosition.nullifier,
         nonce: oldPosition.nonce,
       }
-      let prev_index = 0
-      if (oldPosition.leafIndex === null) {
-        tree.insert(hash_note(prev_note))
-      } else {
-        prev_index = oldPosition.leafIndex
-      }
-      const prev_hash_path = tree.path(prev_index).pathElements
+      const prev_note_hash = hash_note(prev_note)
+      let prev_index = oldPosition.leafIndex || 0
+      const prev_hash_path =
+        oldPosition.leafIndex === null
+          ? _.range(12).map(() => "0x00")
+          : tree.proof(prev_note_hash).pathElements
       const root = tree.root
+
+      console.log("Prev hash path", prev_hash_path)
 
       console.log("Prev note", prev_note)
 
@@ -143,26 +144,6 @@ export const useProvePosition = () => {
       }
       console.log("New note", new_note)
       const new_note_hash = hash_note(new_note)
-      console.log({
-        new_note,
-        new_note_hash,
-        new_will_liq_price: new_note.will_liq_price,
-        new_timestamp: new_note.timestamp,
-        prev_note,
-        prev_hash: hash_note(prev_note),
-        prev_nullifier: oldPosition.nullifier,
-        prev_index,
-        prev_hash_path,
-        root,
-        liquidated_array: _.range(10).map((i) => ({
-          liq_price: toHex(i + 1),
-          timestamp: toHex(0n),
-        })),
-        lend_token_out: toHex(lendTokenOut),
-        borrow_token_out: toHex(borrowTokenOut),
-        lend_token_in: toHex(lendTokenIn),
-        borrow_token_in: toHex(borrowTokenIn),
-      })
       const { witness } = await noir.execute({
         new_note,
         new_note_hash,
@@ -183,12 +164,15 @@ export const useProvePosition = () => {
         lend_token_in: toHex(lendTokenIn),
         borrow_token_in: toHex(borrowTokenIn),
       })
-      const proof = await backend.generateProof(witness)
+      const proof = await backend.generateProof(witness, {
+        keccak: true,
+      })
+      console.log("Proof size", proof.proof.length)
       return {
         proof: proof.proof,
         new_note,
         new_note_hash,
-        root,
+        root: root as Hex,
         old_nullifier: oldPosition.nullifier,
         willLiqPrice,
       }

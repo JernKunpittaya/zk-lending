@@ -126,6 +126,8 @@ export function NewPositionDialog({
   const prove = useProvePosition()
   const { addPosition } = usePositionStore()
 
+  const [open, setOpen] = useState(false)
+
   const proveAndExecute = useMutation({
     mutationFn: async () => {
       if (!address) {
@@ -206,17 +208,21 @@ export function NewPositionDialog({
       const receipt = await client.waitForTransactionReceipt({
         hash: tx,
       })
+      if (receipt.status !== "success") {
+        throw new Error("Transaction reverted")
+      }
       const event = decodeEventLog({
         abi: zkLendAbi,
-        topics: receipt.logs[0].topics,
-        data: receipt.logs[0].data,
+        topics: receipt.logs[1].topics,
+        data: receipt.logs[1].data,
         eventName: "CommitmentAdded",
       })
       newPosition.leafIndex = event.args.leafIndex
-      console.log("newPosition", newPosition)
       addPosition(newPosition)
       refreshContractState(queryClient)
       refreshTokenBalances(queryClient)
+      form.reset()
+      setOpen(false)
       toast.success("Position created", {
         description: `Tx hash: ${tx}`,
         action: {
@@ -235,7 +241,7 @@ export function NewPositionDialog({
   })
 
   return (
-    <Dialog {...props}>
+    <Dialog open={open} onOpenChange={setOpen} {...props}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>

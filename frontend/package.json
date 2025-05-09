@@ -11,10 +11,10 @@
     "format:check": "pnpm prettier ./src --check"
   },
   "dependencies": {
-    "@aztec/bb.js": "0.72.1",
+    "@aztec/bb.js": "0.82.2",
     "@hookform/resolvers": "^5.0.1",
     "@next/third-parties": "^15.2.4",
-    "@noir-lang/noir_js": "1.0.0-beta.2",
+    "@noir-lang/noir_js": "1.0.0-beta.3",
     "@radix-ui/react-dialog": "^1.1.13",
     "@radix-ui/react-dropdown-menu": "^2.1.6",
     "@radix-ui/react-label": "^2.1.6",
