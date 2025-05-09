@@ -21,8 +21,7 @@ interface IHasher {
 contract MerkleTreeWithHistory {
     uint256 public constant FIELD_SIZE =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
-    uint256 public constant ZERO_VALUE =
-        21663839004416932945382355908790599225266501822907911457504978515578255421292; // = keccak256("tornado") % FIELD_SIZE
+    uint256 public constant ZERO_VALUE = 0;
     IHasher public immutable hasher;
 
     uint32 public levels;
@@ -48,7 +47,7 @@ contract MerkleTreeWithHistory {
             filledSubtrees[i] = zeros(i);
         }
 
-        roots[0] = zeros(_levels - 1);
+        roots[0] = zeros(_levels);
     }
 
     /**
@@ -131,168 +130,106 @@ contract MerkleTreeWithHistory {
         return roots[currentRootIndex];
     }
 
-    /// @dev provides Zero (Empty) elements for a Poseidon MerkleTree. Up to 32 levels. See in ../genZerosPoseidon.js
-    function zeros(uint256 i) public pure returns (bytes32) {
-        if (i == 0)
-            return
-                bytes32(
-                    0x2fe54c60d3acabf3343a35b6eba15db4821b340f76e741e2249685ed4899af6c
-                );
-        else if (i == 1)
-            return
-                bytes32(
-                    0x13e37f2d6cb86c78ccc1788607c2b199788c6bb0a615a21f2e7a8e88384222f8
-                );
-        else if (i == 2)
-            return
-                bytes32(
-                    0x217126fa352c326896e8c2803eec8fd63ad50cf65edfef27a41a9e32dc622765
-                );
-        else if (i == 3)
-            return
-                bytes32(
-                    0x0e28a61a9b3e91007d5a9e3ada18e1b24d6d230c618388ee5df34cacd7397eee
-                );
-        else if (i == 4)
-            return
-                bytes32(
-                    0x27953447a6979839536badc5425ed15fadb0e292e9bc36f92f0aa5cfa5013587
-                );
-        else if (i == 5)
-            return
-                bytes32(
-                    0x194191edbfb91d10f6a7afd315f33095410c7801c47175c2df6dc2cce0e3affc
-                );
-        else if (i == 6)
-            return
-                bytes32(
-                    0x1733dece17d71190516dbaf1927936fa643dc7079fc0cc731de9d6845a47741f
-                );
-        else if (i == 7)
-            return
-                bytes32(
-                    0x267855a7dc75db39d81d17f95d0a7aa572bf5ae19f4db0e84221d2b2ef999219
-                );
-        else if (i == 8)
-            return
-                bytes32(
-                    0x1184e11836b4c36ad8238a340ecc0985eeba665327e33e9b0e3641027c27620d
-                );
-        else if (i == 9)
-            return
-                bytes32(
-                    0x0702ab83a135d7f55350ab1bfaa90babd8fc1d2b3e6a7215381a7b2213d6c5ce
-                );
-        else if (i == 10)
-            return
-                bytes32(
-                    0x2eecc0de814cfd8c57ce882babb2e30d1da56621aef7a47f3291cffeaec26ad7
-                );
-        else if (i == 11)
-            return
-                bytes32(
-                    0x280bc02145c155d5833585b6c7b08501055157dd30ce005319621dc462d33b47
-                );
-        else if (i == 12)
-            return
-                bytes32(
-                    0x045132221d1fa0a7f4aed8acd2cbec1e2189b7732ccb2ec272b9c60f0d5afc5b
-                );
-        else if (i == 13)
-            return
-                bytes32(
-                    0x27f427ccbf58a44b1270abbe4eda6ba53bd6ac4d88cf1e00a13c4371ce71d366
-                );
-        else if (i == 14)
-            return
-                bytes32(
-                    0x1617eaae5064f26e8f8a6493ae92bfded7fde71b65df1ca6d5dcec0df70b2cef
-                );
-        else if (i == 15)
-            return
-                bytes32(
-                    0x20c6b400d0ea1b15435703c31c31ee63ad7ba5c8da66cec2796feacea575abca
-                );
-        else if (i == 16)
-            return
-                bytes32(
-                    0x09589ddb438723f53a8e57bdada7c5f8ed67e8fece3889a73618732965645eec
-                );
-        else if (i == 17)
-            return
-                bytes32(
-                    0x0064b6a738a5ff537db7b220f3394f0ecbd35bfd355c5425dc1166bf3236079b
-                );
-        else if (i == 18)
-            return
-                bytes32(
-                    0x095de56281b1d5055e897c3574ff790d5ee81dbc5df784ad2d67795e557c9e9f
-                );
-        else if (i == 19)
-            return
-                bytes32(
-                    0x11cf2e2887aa21963a6ec14289183efe4d4c60f14ecd3d6fe0beebdf855a9b63
-                );
-        else if (i == 20)
-            return
-                bytes32(
-                    0x2b0f6fc0179fa65b6f73627c0e1e84c7374d2eaec44c9a48f2571393ea77bcbb
-                );
-        else if (i == 21)
-            return
-                bytes32(
-                    0x16fdb637c2abf9c0f988dbf2fd64258c46fb6a273d537b2cf1603ea460b13279
-                );
-        else if (i == 22)
-            return
-                bytes32(
-                    0x21bbd7e944f6124dad4c376df9cc12e7ca66e47dff703ff7cedb1a454edcf0ff
-                );
-        else if (i == 23)
-            return
-                bytes32(
-                    0x2784f8220b1c963e468f590f137baaa1625b3b92a27ad9b6e84eb0d3454d9962
-                );
-        else if (i == 24)
-            return
-                bytes32(
-                    0x16ace1a65b7534142f8cc1aad810b3d6a7a74ca905d9c275cb98ba57e509fc10
-                );
-        else if (i == 25)
-            return
-                bytes32(
-                    0x2328068c6a8c24265124debd8fe10d3f29f0665ea725a65e3638f6192a96a013
-                );
-        else if (i == 26)
-            return
-                bytes32(
-                    0x2ddb991be1f028022411b4c4d2c22043e5e751c120736f00adf54acab1c9ac14
-                );
-        else if (i == 27)
-            return
-                bytes32(
-                    0x0113798410eaeb95056a464f70521eb58377c0155f2fe518a5594d38cc209cc0
-                );
-        else if (i == 28)
-            return
-                bytes32(
-                    0x202d1ae61526f0d0d01ef80fb5d4055a7af45721024c2c24cffd6a3798f54d50
-                );
-        else if (i == 29)
-            return
-                bytes32(
-                    0x23ab323453748129f2765f79615022f5bebd6f4096a796300aab049a60b0f187
-                );
-        else if (i == 30)
-            return
-                bytes32(
-                    0x1f15585f8947e378bcf8bd918716799da909acdb944c57150b1eb4565fda8aa0
-                );
-        else if (i == 31)
-            return
-                bytes32(
-                    0x1eb064b21055ac6a350cf41eb30e4ce2cb19680217df3a243617c2838185ad06
-                );
-        else revert("Index out of bounds");
+    uint256 internal constant Z_0 = 0;
+    uint256 internal constant Z_1 =
+        14744269619966411208579211824598458697587494354926760081771325075741142829156;
+    uint256 internal constant Z_2 =
+        7423237065226347324353380772367382631490014989348495481811164164159255474657;
+    uint256 internal constant Z_3 =
+        11286972368698509976183087595462810875513684078608517520839298933882497716792;
+    uint256 internal constant Z_4 =
+        3607627140608796879659380071776844901612302623152076817094415224584923813162;
+    uint256 internal constant Z_5 =
+        19712377064642672829441595136074946683621277828620209496774504837737984048981;
+    uint256 internal constant Z_6 =
+        20775607673010627194014556968476266066927294572720319469184847051418138353016;
+    uint256 internal constant Z_7 =
+        3396914609616007258851405644437304192397291162432396347162513310381425243293;
+    uint256 internal constant Z_8 =
+        21551820661461729022865262380882070649935529853313286572328683688269863701601;
+    uint256 internal constant Z_9 =
+        6573136701248752079028194407151022595060682063033565181951145966236778420039;
+    uint256 internal constant Z_10 =
+        12413880268183407374852357075976609371175688755676981206018884971008854919922;
+    uint256 internal constant Z_11 =
+        14271763308400718165336499097156975241954733520325982997864342600795471836726;
+    uint256 internal constant Z_12 =
+        20066985985293572387227381049700832219069292839614107140851619262827735677018;
+    uint256 internal constant Z_13 =
+        9394776414966240069580838672673694685292165040808226440647796406499139370960;
+    uint256 internal constant Z_14 =
+        11331146992410411304059858900317123658895005918277453009197229807340014528524;
+    uint256 internal constant Z_15 =
+        15819538789928229930262697811477882737253464456578333862691129291651619515538;
+    uint256 internal constant Z_16 =
+        19217088683336594659449020493828377907203207941212636669271704950158751593251;
+    uint256 internal constant Z_17 =
+        21035245323335827719745544373081896983162834604456827698288649288827293579666;
+    uint256 internal constant Z_18 =
+        6939770416153240137322503476966641397417391950902474480970945462551409848591;
+    uint256 internal constant Z_19 =
+        10941962436777715901943463195175331263348098796018438960955633645115732864202;
+    uint256 internal constant Z_20 =
+        15019797232609675441998260052101280400536945603062888308240081994073687793470;
+    uint256 internal constant Z_21 =
+        11702828337982203149177882813338547876343922920234831094975924378932809409969;
+    uint256 internal constant Z_22 =
+        11217067736778784455593535811108456786943573747466706329920902520905755780395;
+    uint256 internal constant Z_23 =
+        16072238744996205792852194127671441602062027943016727953216607508365787157389;
+    uint256 internal constant Z_24 =
+        17681057402012993898104192736393849603097507831571622013521167331642182653248;
+    uint256 internal constant Z_25 =
+        21694045479371014653083846597424257852691458318143380497809004364947786214945;
+    uint256 internal constant Z_26 =
+        8163447297445169709687354538480474434591144168767135863541048304198280615192;
+    uint256 internal constant Z_27 =
+        14081762237856300239452543304351251708585712948734528663957353575674639038357;
+    uint256 internal constant Z_28 =
+        16619959921569409661790279042024627172199214148318086837362003702249041851090;
+    uint256 internal constant Z_29 =
+        7022159125197495734384997711896547675021391130223237843255817587255104160365;
+    uint256 internal constant Z_30 =
+        4114686047564160449611603615418567457008101555090703535405891656262658644463;
+    uint256 internal constant Z_31 =
+        12549363297364877722388257367377629555213421373705596078299904496781819142130;
+    uint256 internal constant Z_32 =
+        21443572485391568159800782191812935835534334817699172242223315142338162256601;
+
+    function zeros(uint256 index) internal pure returns (bytes32) {
+        if (index == 0) return bytes32(Z_0);
+        if (index == 1) return bytes32(Z_1);
+        if (index == 2) return bytes32(Z_2);
+        if (index == 3) return bytes32(Z_3);
+        if (index == 4) return bytes32(Z_4);
+        if (index == 5) return bytes32(Z_5);
+        if (index == 6) return bytes32(Z_6);
+        if (index == 7) return bytes32(Z_7);
+        if (index == 8) return bytes32(Z_8);
+        if (index == 9) return bytes32(Z_9);
+        if (index == 10) return bytes32(Z_10);
+        if (index == 11) return bytes32(Z_11);
+        if (index == 12) return bytes32(Z_12);
+        if (index == 13) return bytes32(Z_13);
+        if (index == 14) return bytes32(Z_14);
+        if (index == 15) return bytes32(Z_15);
+        if (index == 16) return bytes32(Z_16);
+        if (index == 17) return bytes32(Z_17);
+        if (index == 18) return bytes32(Z_18);
+        if (index == 19) return bytes32(Z_19);
+        if (index == 20) return bytes32(Z_20);
+        if (index == 21) return bytes32(Z_21);
+        if (index == 22) return bytes32(Z_22);
+        if (index == 23) return bytes32(Z_23);
+        if (index == 24) return bytes32(Z_24);
+        if (index == 25) return bytes32(Z_25);
+        if (index == 26) return bytes32(Z_26);
+        if (index == 27) return bytes32(Z_27);
+        if (index == 28) return bytes32(Z_28);
+        if (index == 29) return bytes32(Z_29);
+        if (index == 30) return bytes32(Z_30);
+        if (index == 31) return bytes32(Z_31);
+        if (index == 32) return bytes32(Z_32);
+        revert("WrongDefaultZeroIndex");
     }
 }

@@ -5,6 +5,9 @@
   "license": "MIT",
   "dependencies": {
     "@aztec/merkle-tree": "^0.86.0",
+    "@iden3/js-merkletree": "^1.4.0",
+    "@openzeppelin/merkle-tree": "^1.0.8",
+    "@zk-kit/incremental-merkle-tree": "^1.1.0",
     "circom": "^0.5.46",
     "circomlib": "^2.0.5",
     "circomlibjs": "^0.1.7",

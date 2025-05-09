@@ -183,7 +183,7 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             _old_nullifier,
             0,
             0,
-            _lend_amt,
+            _lend_amt, // lend token in
             0
         );
         require(
@@ -206,7 +206,7 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
 
             // Check old note nullifier
             require(
-                nullifierHashes[_old_nullifier],
+                !nullifierHashes[_old_nullifier],
                 "The note has been already spent"
             );
             nullifierHashes[_old_nullifier] = true;
@@ -255,9 +255,9 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             _root,
             _old_nullifier,
             0,
-            _borrow_amt,
             0,
-            0
+            0,
+            _borrow_amt // borrow token in
         );
         require(verifier.verify(_proof, public_inputs), "Invalid borrow proof");
 
@@ -277,7 +277,7 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
 
         // Check old note nullifier
         require(
-            nullifierHashes[_old_nullifier],
+            !nullifierHashes[_old_nullifier],
             "The note has been already spent"
         );
         nullifierHashes[_old_nullifier] = true;
@@ -324,9 +324,9 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             _root,
             _old_nullifier,
             0,
+            _repay_amt, // borrow token out (from wallet)
             0,
-            0,
-            _repay_amt
+            0
         );
         require(verifier.verify(_proof, public_inputs), "Invalid repay proof");
 
@@ -346,7 +346,7 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
 
         // Check old note nullifier
         require(
-            nullifierHashes[_old_nullifier],
+            !nullifierHashes[_old_nullifier],
             "The note has been already spent"
         );
         nullifierHashes[_old_nullifier] = true;
@@ -393,7 +393,7 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             _new_timestamp,
             _root,
             _old_nullifier,
-            _withdraw_amt,
+            _withdraw_amt, // withdraw token out (to wallet)
             0,
             0,
             0
@@ -419,7 +419,7 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
 
         // Check old note nullifier
         require(
-            nullifierHashes[_old_nullifier],
+            !nullifierHashes[_old_nullifier],
             "The note has been already spent"
         );
         nullifierHashes[_old_nullifier] = true;
@@ -489,7 +489,7 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
 
         // Check old note nullifier
         require(
-            nullifierHashes[_old_nullifier],
+            !nullifierHashes[_old_nullifier],
             "The note has been already spent"
         );
         nullifierHashes[_old_nullifier] = true;
