@@ -26,7 +26,6 @@ interface IVerifier {
 
 contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     IVerifier public immutable verifier;
-    // uint256[] public liquidated_array;
     MockToken public lend_token;
     MockToken public borrow_token;
     struct Liquidated {
@@ -76,6 +75,12 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             output[2 * i + 1] = liquidated_array[i].timestamp;
         }
         return output;
+    }
+
+    function update_liquidated_array(uint8 index, uint256 _liq_price, uint256 _timestamp) public{
+        require(index<LIQUIDATED_ARRAY_NUMBER, "Index exceeds number of possible liquidated position buckets");
+        liquidated_array[index].liq_price = _liq_price;
+        liquidated_array[index].timestamp = _timestamp;
     }
     // TODO: ADD logic that allows us to add (liq_price, time) pair
 
