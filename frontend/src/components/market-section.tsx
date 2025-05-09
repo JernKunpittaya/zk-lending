@@ -25,7 +25,7 @@ export function MarketSection({ className, ...props }: ComponentProps<"div">) {
       name: currencies.weth.name,
       symbol: currencies.weth.symbol,
       icon: currencies.weth.icon,
-      price: price.data?.weth,
+      price: price.data?.weth || 0,
       deposits: state.data ? Number(state.data?.weth_deposit_amount) : 0,
       borrowed: state.data ? Number(state.data?.weth_borrow_amount) : 0,
       utilization: state.data
@@ -37,7 +37,7 @@ export function MarketSection({ className, ...props }: ComponentProps<"div">) {
       name: currencies.usdc.name,
       symbol: currencies.usdc.symbol,
       icon: currencies.usdc.icon,
-      price: price.data?.usdc,
+      price: price.data?.usdc || 0,
       deposits: state.data ? Number(state.data?.usdc_deposit_amount) : 0,
       borrowed: state.data ? Number(state.data?.usdc_borrow_amount) : 0,
       utilization: state.data

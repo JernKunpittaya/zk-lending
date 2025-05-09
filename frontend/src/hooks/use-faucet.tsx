@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 import { Hex } from "viem"
@@ -6,7 +6,10 @@ import { useAccount, useWriteContract } from "wagmi"
 
 import { client, contracts, tokenAbi } from "@/lib/contract"
 
+import { refreshTokenBalances } from "./use-token-balances"
+
 export const useFaucet = () => {
+  const queryClient = useQueryClient()
   const writeContract = useWriteContract()
   const { address } = useAccount()
 
@@ -30,6 +33,7 @@ export const useFaucet = () => {
         throw new Error("Transaction failed", { cause: receipt })
       }
 
+      refreshTokenBalances(queryClient)
       toast.success("Tokens minted", {
         description: `Tx hash: ${tx}`,
         action: {

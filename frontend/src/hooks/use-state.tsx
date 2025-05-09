@@ -20,5 +20,6 @@ export const useContractState = () => {
       })
       return state
     },
+    refetchInterval: 1000 * 30, // 30 seconds
   })
 }

@@ -20,17 +20,18 @@ export const zkLendAbi = parseAbi([
   "function borrow(bytes32 _new_note_hash, bytes32 _new_will_liq_price, uint256 _new_timestamp, bytes32 _root, bytes32 _old_nullifier, bytes calldata _proof, uint256 _borrow_amt, address _borrow_token, address _to)",
   "function repay(bytes32 _new_note_hash, bytes32 _new_will_liq_price, uint256 _new_timestamp, bytes32 _root, bytes32 _old_nullifier, bytes calldata _proof, uint256 _repay_amt, address _repay_token)",
   "function withdraw(bytes32 _new_note_hash, bytes32 _new_will_liq_price, uint256 _new_timestamp, bytes32 _root, bytes32 _old_nullifier, bytes calldata _proof, uint256 _withdraw_amt, address _withdraw_token, address _to)",
-  "event Deposit(bytes32 indexed commitment, bytes32 nullifierHash, uint32 leafIndex, uint256 timestamp)",
-  "event Borrow(bytes32 indexed commitment, address to, bytes32 nullifierHash, uint32 leafIndex, uint256 timestamp)",
-  "event Repay(bytes32 indexed commitment, bytes32 nullifierHash, uint32 leafIndex, uint256 timestamp)",
-  "event Withdraw(bytes32 indexed commitment, address to, bytes32 nullifierHash, uint32 leafIndex, uint256 timestamp)",
+  "event CommitmentAdded(bytes32 indexed commitment, uint32 indexed leafIndex)",
+  "event Deposit(bytes32 nullifierHash, uint256 timestamp)",
+  "event Borrow(address to, bytes32 nullifierHash, uint256 timestamp)",
+  "event Repay(bytes32 nullifierHash, uint256 timestamp)",
+  "event Withdraw(address to, bytes32 nullifierHash, uint256 timestamp)",
 ])
 
 export const contracts = {
-  usdc: "0xacf706de76dce4db1350917d39dbb68dd8bda8e4",
-  weth: "0x00ea46082024f5b0c8c3e120d6442f92fa1c7f99",
-  verifier: "0xdf003194e800e5f29dcf65d1a5e4fbb8e5f01bdc",
-  zklend: "0xe30b1924b952b3013ca62417c8bb3ea3e79f5a27",
+  usdc: "0x0729b1C8aE8AbBF95dAB6F0835CF9962C29c7344",
+  weth: "0x9c56316255cff57cbeb8a0418c8f5d4f9523588f",
+  verifier: "0x40C106c9F4B74b16a5829B6014b0d99896eDE503",
+  zklend: "0xda574377faFB3775e8A1bC547a9BA387f1c749C5",
   explorer: "https://sepolia.etherscan.io",
 } as const
 

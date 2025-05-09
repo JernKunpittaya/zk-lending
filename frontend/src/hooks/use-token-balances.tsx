@@ -1,7 +1,13 @@
-import { useQuery } from "@tanstack/react-query"
+import { QueryClient, useQuery } from "@tanstack/react-query"
 import { useAccount, useClient } from "wagmi"
 
 import { client, contracts, tokenAbi } from "@/lib/contract"
+
+export const refreshTokenBalances = (queryClient: QueryClient) => {
+  queryClient.invalidateQueries({
+    predicate: (query) => query.queryKey[0] === "token-balances",
+  })
+}
 
 export const useTokenBalances = () => {
   const { address } = useAccount()
@@ -30,5 +36,6 @@ export const useTokenBalances = () => {
         weth: Number(results[1].result) / 1e6,
       }
     },
+    refetchInterval: 1000 * 30, // 30 seconds
   })
 }

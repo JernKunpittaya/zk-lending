@@ -12,7 +12,8 @@ export const usePrices = () => {
         "https://api.coingecko.com/api/v3/coins/ethereum"
       )
       const data = await response.json()
-      return { weth: data.market_data.current_price.usd, usdc: 1 }
+      return { weth: data.market_data.current_price.usd as number, usdc: 1 }
     },
+    refetchInterval: 1000 * 30, // 30 seconds
   })
 }
