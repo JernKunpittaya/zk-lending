@@ -1,82 +1,81 @@
-# zk-lending [WIP]
+# Noiri: Private Money Market Protocol
 
-## TODO
+Noiri is a native, privacy-preserving money market protocol on Ethereum L1, powered by Noir. It enables users to perform all core banking operations — lend, borrow, repay, and withdraw — with interest accurately accounted for, while ensuring each action is disjointed, revealing no complete view of a user’s overall position.
+Most importantly, liquidations are triggered publicly, but who gets liquidated and how much remains fully private.
 
-### ZK part
+## Why Private Money Market
 
-- Support the other way round, instead of only lending ETH, Borrow USD
-- Optimize check if our position is already liquidated or not
+Lending/Borrowing is HUGE
 
-### Non-ZK
+- Aave V3 on Ethereum L1 alone handles [$23.6B+](https://www.galaxy.com/insights/research/the-state-of-crypto-lending/) in deposits (31 Mar 25)
+- Borrowing and leverage are core financial primitives in DeFi
 
-- Frontend/Contract enforces us to only select a certain amount of either borrowing or lending asset sucht that liquidation price exists in one of the liqudation bucket at that time. Logic can be found in HELPER FUNCTIONS and in test_main()
-- Include Commitment into Merkle Tree & Update Tree, again can see in test_main()
-- Publish Nullifer & Check for double spend nullifier Need to be done in smart contract.
-- Make sure that the amount money we submit on smart contract the same as its corresponding witness
-- Keeping track of all liquidated buckets, can see in test_main()
+But Everything is PUBLIC
 
-## What we have now
+- On Ethereum L1, your full position is exposed:
+  - How much you lent or borrowed
+  - Which assets
+  - Liquidation thresholds and timing
 
-See Test Cases, especially test_main() that illustrates the whole flow.
+## Core Challenges
 
-Tracking: Each user has a MyNote (commitment) with:
+Shared State Limits Logic
 
-- Lend amount (lend_amt)
-- Borrow amount (borrow_amt)
-- Liquidation price (will_liq_price)
-- Last updated time (timestamp)
-- Nullifier & nonce (privacy + uniqueness)
+- Shielded pools like Aztec Connect aggregate user funds into a single shared state
+- Only support group actions like lending, staking, swapping.
+- No support for individualized borrowing, interest accrual, or repayments
 
-### Main Algorithm (used in most actions)
+Stateless Model Breaks Liquidation
 
-1. Check Liquidation Status
+- When lending and borrowing are disentangled, there’s not enough information for smart contract to liquidate the position
 
-- Check if our note falls in liquidated bucket. (Note that due to lending/borrowing interest rate), the liquidated price of each bucket will always move up, we hence check if our position moves up to be in the liquidated bucket at certain time or not
+Increased Trust Assumptions
 
-2. Verify Merkle Tree Note inclusion
+- Trusted Execution Environments (TEE)
+- Sequencers, relayers, or coordinators in Layer 2
 
-3. Enforce LTV Constraint
+## How Noiri Works
 
-### Main Functions
+### Core Ideas
 
-1. Initiate Note
+Public Flow, Private Position
 
-- Generate MyNote
+- Assets move around publicly, but the real user's positions are private!
+- Liquidations are triggered publicly, but who gets liquidated and how much remains private
+- Banking operations (lend, borrow, repay, withdraw) are executed publicly, but each action is disjointed, revealing no complete view of a user’s position
 
-2. Borrow
+Risk Preference Buckets
 
-- Verify note inclusion in the Merkle tree.
-- Check liquidation status.
-- Correctly update lend amount from interest rate
-- Correctly update borrow amount from interest rate & additional borrow
-- Correctly update will_liq_price from LTV constraint
-- Update time, nullifer, and nonce
+- Each buckets is defined by a liquidation price that once crossed, all lending amounts in that bucket are liquidated
+- When updating their position, users select their preferred liquidation price, then Noiri computes the corresponding fund movement for each banking operation.
 
-3. Lend
+Unified Private State Transition Circuit
 
-- Verify note inclusion in the Merkle tree.
-- Check liquidation status.
-- Correctly update lend amount from interest rate & additional lend
-- Correctly update borrow amount from interest rate
-- Correctly update will_liq_price from LTV constraint
-- Update time, nullifer, and nonce
+- A single zkp circuit handles all banking operations constraints
+- Enforce other key constraints: LTV, Interest Accrual, Liquidation Checks, and Inclusion Proof
 
-4. Repay
+### Information Architecture
 
-- Verify note inclusion in the Merkle tree.
-- Check liquidation status.
-- Correctly update lend amount from interest rate
-- Correctly update borrow amount from interest rate & repay borrow
-- Make sure we dont over-repay the debt
-- Correctly update will_liq_price from LTV constraint
-- Update time, nullifer, and nonce
+![App Screenshot](./architecture.png)
 
-5. Withdraw
+### Closer Look at our Zringotts circuit v.0
 
-- Verify note inclusion in the Merkle tree.
-- Check liquidation status.
-- Correctly update lend amount from interest rate & withdraw lend
-- Correctly update borrow amount from interest rate
-- Make sure we dont over-withdraw the lending
-- Correctly update will_liq_price from LTV constraint
-- Update time, nullifer, and nonce
+Verify Note Validity
+
+- Merkle proof ensures that the user is authorized to modify the position
+
+State Transition Logic
+
+- Update positions based on banking operation type, previous balance, and interest rate
+- Interest Accrual: Updated on every state change even if the token amount remains unchanged
+- Liquidation Settlement: Claim = lending amount x liquidation price - borrowed
+
+Requirement check
+
+- LTV threshold: Enforce safe collateralization
+- Correct Note construction: Ensure resulting note reflects a valid & updated position
+
+Current Limitation
+
+- Fixed lending & borrowing interest rate
+- Siloed Market: Only support one pair of asset
