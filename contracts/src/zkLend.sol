@@ -113,7 +113,7 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         uint256 _lend_token_in,
         uint256 _borrow_token_in
     ) public view returns (bytes32[] memory) {
-        bytes32[] memory public_inputs = new bytes32[](6);
+        bytes32[] memory public_inputs = new bytes32[](29);
         public_inputs[0] = _new_note_hash;
         public_inputs[1] = _new_will_liq_price;
         public_inputs[2] = bytes32(_new_timestamp);
