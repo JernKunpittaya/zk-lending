@@ -26,9 +26,16 @@ interface IVerifier {
 
 contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     IVerifier public immutable verifier;
-    uint256[] public liquidated_array;
+    // uint256[] public liquidated_array;
     MockToken public lend_token;
     MockToken public borrow_token;
+    struct Liquidated {
+        uint256 liq_price;       
+        uint256 timestamp;     
+    }
+    uint256 public constant LIQUIDATED_ARRAY_NUMBER = 10; 
+    Liquidated[] public liquidated_array= new Liquidated[](LIQUIDATED_ARRAY_NUMBER);
+
 
     mapping(bytes32 => bool) public nullifierHashes;
     // we store all commitments just to prevent accidental deposits with the same commitment
@@ -52,12 +59,23 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         MerkleTreeWithHistory(_merkleTreeHeight, _hasher)
     {
         verifier = _verifier;
-        liquidated_array = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+        Liquidated memory default_liquidated = Liquidated({
+            liq_price:0,
+            timestamp:0
+        });
+        for (uint256 i = 0; i < LIQUIDATED_ARRAY_NUMBER; i++) {
+            liquidated_array[i] = default_liquidated;
+        }
         lend_token = _lend_token;
         borrow_token = _borrow_token;
     }
-    function show_liquidated_array() public view returns (uint256[] memory){
-        return liquidated_array;
+    function flatten_liquidated_array() public view returns (uint256[] memory){
+        uint256[] memory output = new uint256[](LIQUIDATED_ARRAY_NUMBER * 2);
+        for (uint256 i = 0; i < LIQUIDATED_ARRAY_NUMBER; i++) {
+            output[2 * i] = liquidated_array[i].liq_price;
+            output[2 * i + 1] = liquidated_array[i].timestamp;
+        }
+        return output;
     }
     // TODO: ADD logic that allows us to add (liq_price, time) pair
 
@@ -80,11 +98,9 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         bytes32 _commitment,
         address _recipient,
         uint256 _will_liq_price,
-        uint256 _additional_borrow_amt,
-        uint256[] memory _liquidated_array
+        uint256 _additional_borrow_amt
     ) external payable nonReentrant {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
-        require(_liquidated_array.length == liquidated_array.length, "Liquidated array length mismatch");
         require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
         
          // TODO: Do verify logic
@@ -118,11 +134,9 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         bytes32 _nullifierHash,
         bytes32 _commitment,
         uint256 _will_liq_price,
-        uint256 _additional_lend_amt,
-        uint256[] memory _liquidated_array
+        uint256 _additional_lend_amt
     ) external payable nonReentrant {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
-        require(_liquidated_array.length == liquidated_array.length, "Liquidated array length mismatch");
         require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
         
          // TODO: Do verify logic
@@ -158,11 +172,9 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         bytes32 _commitment,
         address _recipient,
         uint256 _will_liq_price,
-        uint256 _repay_borrow_amt,
-        uint256[] memory _liquidated_array
+        uint256 _repay_borrow_amt
     ) external payable nonReentrant {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
-        require(_liquidated_array.length == liquidated_array.length, "Liquidated array length mismatch");
         require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
         
          // TODO: Do verify logic
@@ -198,11 +210,9 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         bytes32 _commitment,
         address _recipient,
         uint256 _will_liq_price,
-        uint256 _withdraw_lend_amt,
-        uint256[] memory _liquidated_array
+        uint256 _withdraw_lend_amt
     ) external payable nonReentrant {
         require(!nullifierHashes[_nullifierHash], "The note has been already spent");
-        require(_liquidated_array.length == liquidated_array.length, "Liquidated array length mismatch");
         require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
         
          // TODO: Do verify logic

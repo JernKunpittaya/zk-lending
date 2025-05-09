@@ -10,7 +10,6 @@ import {MockToken} from "src/MockToken.sol";
 
 contract zkLendTest is Test {
     uint256 public constant FIELD_SIZE = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
-    uint256 public constant LIQUIDATED_ARRAY_BUCKETS = 10; // hence 20 elements, since each bucket has info (liq_price, timestamp)
     IVerifier public verifier;
     zkLend public zk_lend_mixer;
     MockToken public mUSDC;
@@ -89,13 +88,13 @@ contract zkLendTest is Test {
         inputs[5] = vm.toString(prev_note.timestamp);
         inputs[6] = vm.toString(prev_note.nullifier);
         inputs[7] = vm.toString(prev_note.secret);
-        // Fix number of brackets to just 10 as example. since each bracket consists of liquidation price & time, makig liquidated_array len = 20
-        for (uint256 i = 0; i < 2*LIQUIDATED_ARRAY_BUCKETS; i++) {
+    
+        for (uint256 i = 0; i < liquidated_array.length; i++) {
             inputs[8 + i] = vm.toString(liquidated_array[i]);
         }
         
         for (uint256 i = 0; i < leaves.length; i++) {
-            inputs[8+2*LIQUIDATED_ARRAY_BUCKETS + i] = vm.toString(leaves[i]);
+            inputs[8+liquidated_array.length + i] = vm.toString(leaves[i]);
         }
 
         bytes memory result = vm.ffi(inputs);
@@ -169,7 +168,7 @@ contract zkLendTest is Test {
         
         // TODO: Fix priWitness
         (uint256 priWitness, bytes32 root, bytes32 nullifierHash) =
-            _getWitnessAndProof(prev_note, new_note, additional_borrow_amt, zk_lend_mixer.show_liquidated_array(), leaves);
+            _getWitnessAndProof(prev_note, new_note, additional_borrow_amt, zk_lend_mixer.flatten_liquidated_array(), leaves);
 
         // // 3. Verify proof against the verifier contract.
         // assertTrue(
@@ -191,9 +190,11 @@ contract zkLendTest is Test {
         // 4. Withdraw funds from the contract.
         // assertEq(recipient.balance, 0);
         // assertEq(address(mixer).balance, 1 ether);
-        zk_lend_mixer.borrow(priWitness, root, nullifierHash, new_commitment, recipient, new_will_liq_price, additional_borrow_amt, zk_lend_mixer.show_liquidated_array());
+        zk_lend_mixer.borrow(priWitness, root, nullifierHash, new_commitment, recipient, new_will_liq_price, additional_borrow_amt);
         // assertEq(recipient.balance, 1 ether);
         // assertEq(address(mixer).balance, 0);
+
+
     }
 
 }
