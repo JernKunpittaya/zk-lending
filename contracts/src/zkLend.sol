@@ -23,6 +23,15 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     MockToken public weth;
     MockToken public usdc;
 
+    struct State {
+        int256 weth_deposit_amount;
+        int256 weth_borrow_amount;
+        int256 usdc_deposit_amount;
+        int256 usdc_borrow_amount;
+    }
+
+    State public state;
+
     struct Liquidated {
         uint256 liq_price;
         uint256 timestamp;
@@ -234,6 +243,12 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             nullifierHashes[_old_nullifier] = true;
         }
 
+        if (_lend_token == weth) {
+            state.weth_deposit_amount += int256(_lend_amt);
+        } else {
+            state.usdc_deposit_amount += int256(_lend_amt);
+        }
+
         emit Deposit(
             _new_note_hash,
             _old_nullifier,
@@ -302,6 +317,12 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         );
         nullifierHashes[_old_nullifier] = true;
 
+        if (_borrow_token == weth) {
+            state.weth_borrow_amount += int256(_borrow_amt);
+        } else {
+            state.usdc_borrow_amount += int256(_borrow_amt);
+        }
+
         emit Borrow(
             _new_note_hash,
             _to,
@@ -369,6 +390,12 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             "The note has been already spent"
         );
         nullifierHashes[_old_nullifier] = true;
+
+        if (_repay_token == weth) {
+            state.weth_borrow_amount -= int256(_repay_amt);
+        } else {
+            state.usdc_borrow_amount -= int256(_repay_amt);
+        }
 
         emit Repay(
             _new_note_hash,
@@ -440,6 +467,12 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
             "The note has been already spent"
         );
         nullifierHashes[_old_nullifier] = true;
+
+        if (_withdraw_token == weth) {
+            state.weth_deposit_amount -= int256(_withdraw_amt);
+        } else {
+            state.usdc_deposit_amount -= int256(_withdraw_amt);
+        }
 
         emit Withdraw(
             _new_note_hash,
