@@ -14,37 +14,57 @@ pragma solidity ^0.8.0;
 
 import "./MerkleTreeWithHistory.sol";
 import "./utils/ReentrancyGuard.sol";
-import {MockToken} from "src/MockToken.sol";
-
-interface IVerifier {
-    function verifyProof(
-        // TODO: Fix _privWitness
-        uint256[1] calldata _priWitness,
-        uint256[6] calldata _pubSignals
-    ) external view returns (bool);
-}
+import {MockToken} from "./MockToken.sol";
+import {HonkVerifier} from "./Verifier.sol";
 
 contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
-    IVerifier public immutable verifier;
+    HonkVerifier public immutable verifier;
     MockToken public lend_token;
     MockToken public borrow_token;
     struct Liquidated {
-        uint256 liq_price;       
-        uint256 timestamp;     
+        uint256 liq_price;
+        uint256 timestamp;
     }
-    uint256 public constant LIQUIDATED_ARRAY_NUMBER = 10; 
-    Liquidated[] public liquidated_array= new Liquidated[](LIQUIDATED_ARRAY_NUMBER);
-
+    uint256 public constant LIQUIDATED_ARRAY_NUMBER = 10;
+    Liquidated[] public liquidated_array =
+        new Liquidated[](LIQUIDATED_ARRAY_NUMBER);
 
     mapping(bytes32 => bool) public nullifierHashes;
     // we store all commitments just to prevent accidental deposits with the same commitment
     mapping(bytes32 => bool) public commitments;
 
-    event Deposit(bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
-    event Borrow(address to, bytes32 nullifierHash, bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
-    event Lend(bytes32 nullifierHash, bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
-    event Repay(bytes32 nullifierHash, bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
-    event Withdraw(address to, bytes32 nullifierHash, bytes32 indexed commitment, uint32 leafIndex, uint256 timestamp);
+    event Deposit(
+        bytes32 indexed commitment,
+        uint32 leafIndex,
+        uint256 timestamp
+    );
+    event Borrow(
+        address to,
+        bytes32 nullifierHash,
+        bytes32 indexed commitment,
+        uint32 leafIndex,
+        uint256 timestamp
+    );
+    event Lend(
+        bytes32 nullifierHash,
+        bytes32 indexed commitment,
+        uint32 leafIndex,
+        uint256 timestamp
+    );
+    event Repay(
+        bytes32 nullifierHash,
+        bytes32 indexed commitment,
+        uint32 leafIndex,
+        uint256 timestamp
+    );
+    event Withdraw(
+        address to,
+        bytes32 nullifierHash,
+        bytes32 indexed commitment,
+        uint32 leafIndex,
+        uint256 timestamp
+    );
+
     // event Withdrawal(address to, bytes32 nullifierHash, address indexed relayer, uint256 fee);
 
     // /**
@@ -54,13 +74,16 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     //  * @param _denomination transfer amount for each deposit
     //  * @param _merkleTreeHeight the height of deposits' Merkle Tree
     //  */
-    constructor(IVerifier _verifier, IHasher _hasher, uint32 _merkleTreeHeight, MockToken _lend_token, MockToken _borrow_token)
-        MerkleTreeWithHistory(_merkleTreeHeight, _hasher)
-    {
-        verifier = _verifier;
+    constructor(
+        IHasher _hasher,
+        uint32 _merkleTreeHeight,
+        MockToken _lend_token,
+        MockToken _borrow_token
+    ) MerkleTreeWithHistory(_merkleTreeHeight, _hasher) {
+        verifier = new HonkVerifier();
         Liquidated memory default_liquidated = Liquidated({
-            liq_price:0,
-            timestamp:0
+            liq_price: 0,
+            timestamp: 0
         });
         for (uint256 i = 0; i < LIQUIDATED_ARRAY_NUMBER; i++) {
             liquidated_array[i] = default_liquidated;
@@ -68,7 +91,8 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         lend_token = _lend_token;
         borrow_token = _borrow_token;
     }
-    function flatten_liquidated_array() public view returns (uint256[] memory){
+
+    function flatten_liquidated_array() public view returns (uint256[] memory) {
         uint256[] memory output = new uint256[](LIQUIDATED_ARRAY_NUMBER * 2);
         for (uint256 i = 0; i < LIQUIDATED_ARRAY_NUMBER; i++) {
             output[2 * i] = liquidated_array[i].liq_price;
@@ -77,23 +101,37 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         return output;
     }
 
-    function update_liquidated_array(uint8 index, uint256 _liq_price, uint256 _timestamp) public{
-        require(index<LIQUIDATED_ARRAY_NUMBER, "Index exceeds number of possible liquidated position buckets");
+    function update_liquidated_array(
+        uint8 index,
+        uint256 _liq_price,
+        uint256 _timestamp
+    ) public {
+        require(
+            index < LIQUIDATED_ARRAY_NUMBER,
+            "Index exceeds number of possible liquidated position buckets"
+        );
         liquidated_array[index].liq_price = _liq_price;
         liquidated_array[index].timestamp = _timestamp;
     }
+
     // TODO: ADD logic that allows us to add (liq_price, time) pair
 
     // Deposit funds (first time) into the contract
-    function deposit(bytes32 _commitment, uint256 _lend_amt, uint256 _timestamp) external payable nonReentrant {
+    function deposit(
+        bytes32 _commitment,
+        uint256 _lend_amt,
+        uint256 _timestamp
+    ) external payable nonReentrant {
         require(!commitments[_commitment], "The commitment has been submitted");
 
         uint32 insertedIndex = _insert(_commitment);
         commitments[_commitment] = true;
-        require(lend_token.transferFrom(msg.sender, address(this), _lend_amt), "Token lend failed");
+        require(
+            lend_token.transferFrom(msg.sender, address(this), _lend_amt),
+            "Token lend failed"
+        );
         emit Deposit(_commitment, insertedIndex, _timestamp);
     }
-
 
     // borrow funds from the contract
     function borrow(
@@ -105,10 +143,13 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         uint256 _will_liq_price,
         uint256 _additional_borrow_amt
     ) external payable nonReentrant {
-        require(!nullifierHashes[_nullifierHash], "The note has been already spent");
+        require(
+            !nullifierHashes[_nullifierHash],
+            "The note has been already spent"
+        );
         require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
-        
-         // TODO: Do verify logic
+
+        // TODO: Do verify logic
         // require(
         //     verifier.verifyProof(
         //         [_priWitness],
@@ -128,8 +169,17 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         require(!commitments[_commitment], "The commitment has been submitted");
         uint32 insertedIndex = _insert(_commitment);
         commitments[_commitment] = true;
-        require(borrow_token.transfer(_recipient, _additional_borrow_amt), "Token borrow failed");
-        emit Borrow(_recipient, _nullifierHash, _commitment,insertedIndex, block.timestamp);
+        require(
+            borrow_token.transfer(_recipient, _additional_borrow_amt),
+            "Token borrow failed"
+        );
+        emit Borrow(
+            _recipient,
+            _nullifierHash,
+            _commitment,
+            insertedIndex,
+            block.timestamp
+        );
     }
 
     // lend funds to the contract
@@ -141,10 +191,13 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         uint256 _will_liq_price,
         uint256 _additional_lend_amt
     ) external payable nonReentrant {
-        require(!nullifierHashes[_nullifierHash], "The note has been already spent");
+        require(
+            !nullifierHashes[_nullifierHash],
+            "The note has been already spent"
+        );
         require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
-        
-         // TODO: Do verify logic
+
+        // TODO: Do verify logic
         // require(
         //     verifier.verifyProof(
         //         [_priWitness],
@@ -164,10 +217,16 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         require(!commitments[_commitment], "The commitment has been submitted");
         uint32 insertedIndex = _insert(_commitment);
         commitments[_commitment] = true;
-        require(lend_token.transferFrom(msg.sender, address(this), _additional_lend_amt), "Token lend failed");
+        require(
+            lend_token.transferFrom(
+                msg.sender,
+                address(this),
+                _additional_lend_amt
+            ),
+            "Token lend failed"
+        );
         emit Lend(_nullifierHash, _commitment, insertedIndex, block.timestamp);
     }
-
 
     // repay what is borrowed back to the contract
     function repay(
@@ -179,10 +238,13 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         uint256 _will_liq_price,
         uint256 _repay_borrow_amt
     ) external payable nonReentrant {
-        require(!nullifierHashes[_nullifierHash], "The note has been already spent");
+        require(
+            !nullifierHashes[_nullifierHash],
+            "The note has been already spent"
+        );
         require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
-        
-         // TODO: Do verify logic
+
+        // TODO: Do verify logic
         // require(
         //     verifier.verifyProof(
         //         [_priWitness],
@@ -202,10 +264,16 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         require(!commitments[_commitment], "The commitment has been submitted");
         uint32 insertedIndex = _insert(_commitment);
         commitments[_commitment] = true;
-        require(borrow_token.transferFrom(msg.sender, address(this), _repay_borrow_amt), "Token repay failed");
+        require(
+            borrow_token.transferFrom(
+                msg.sender,
+                address(this),
+                _repay_borrow_amt
+            ),
+            "Token repay failed"
+        );
         emit Repay(_nullifierHash, _commitment, insertedIndex, block.timestamp);
     }
-
 
     // withdraw funds from the contract
     function withdraw(
@@ -217,10 +285,13 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         uint256 _will_liq_price,
         uint256 _withdraw_lend_amt
     ) external payable nonReentrant {
-        require(!nullifierHashes[_nullifierHash], "The note has been already spent");
+        require(
+            !nullifierHashes[_nullifierHash],
+            "The note has been already spent"
+        );
         require(isKnownRoot(_root), "Cannot find your merkle root"); // Make sure to use a recent one
-        
-         // TODO: Do verify logic
+
+        // TODO: Do verify logic
         // require(
         //     verifier.verifyProof(
         //         [_priWitness],
@@ -240,9 +311,19 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
         require(!commitments[_commitment], "The commitment has been submitted");
         uint32 insertedIndex = _insert(_commitment);
         commitments[_commitment] = true;
-        require(lend_token.transfer(_recipient, _withdraw_lend_amt), "Token withdraw failed");
-        emit Withdraw(_recipient, _nullifierHash, _commitment,insertedIndex, block.timestamp);
+        require(
+            lend_token.transfer(_recipient, _withdraw_lend_amt),
+            "Token withdraw failed"
+        );
+        emit Withdraw(
+            _recipient,
+            _nullifierHash,
+            _commitment,
+            insertedIndex,
+            block.timestamp
+        );
     }
+
     /**
      * @dev whether a note is already spent
      */
@@ -253,7 +334,9 @@ contract zkLend is MerkleTreeWithHistory, ReentrancyGuard {
     /**
      * @dev whether an array of notes is already spent
      */
-    function isSpentArray(bytes32[] calldata _nullifierHashes) external view returns (bool[] memory spent) {
+    function isSpentArray(
+        bytes32[] calldata _nullifierHashes
+    ) external view returns (bool[] memory spent) {
         spent = new bool[](_nullifierHashes.length);
         for (uint256 i = 0; i < _nullifierHashes.length; i++) {
             if (isSpent(_nullifierHashes[i])) {
