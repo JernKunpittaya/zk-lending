@@ -171,3 +171,33 @@ In future versions of Noiri, we aim to support cross-bucket adjustments within a
 Importantly, we will explore how to maintain strong privacy guarantees even with this unified margin — including how to avoid correlating sub-positions.
 
 > We’re excited about the composability, capital efficiency, and new privacy trade-offs this will unlock in the world of decentralized money markets.
+
+---
+
+## Usage
+
+### Contract
+
+The contract can be deploy on Sepolia with the following command
+
+```bash
+cd contracts
+pnpm install
+forge install
+forge script --chain sepolia script/deploy.s.sol:Deploy --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvvv --interactives 1 --via-ir --ffi --optimize --optimizer-runs 200
+```
+
+The forge interactive command line will then prompt you for private key of the deployer.
+
+### Frontend
+
+The frontend can be run in development mode using
+
+```bash
+cd frontend
+pnpm install
+cp .env.example .env
+pnpm dev
+```
+
+
